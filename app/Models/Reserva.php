@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class reserva extends Model
+{
+    protected $table ='reservas';
+    use HasFactory;
+
+    protected $fillable =[
+        'user_id',
+        'duracion_horas',
+        'precio_alquiler_total',
+        'monto_comprobante',
+        'fecha',
+        'hora_inicio',
+        'hora_fin',
+        'estado',
+        'cancha_id',
+        'facturas_id',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(user::class);
+    }
+    public function cancha()
+    {
+        return $this->belongsTo(cancha::class);
+    }   
+
+    public function factura()
+    {
+        return $this->belongsTo(factura::class);
+    }   
+
+    public function scopeEstado($query, $estado)
+    {
+        if ($estado) {
+            return $query->where('estado', $estado);
+        }
+    }   
+
+    public function scopeFecha($query, $fecha)
+    {
+        if ($fecha) {
+            return $query->where('fecha', $fecha);
+        }
+    }
+}
