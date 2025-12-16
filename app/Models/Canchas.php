@@ -7,15 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Canchas extends Model
 {
-     use HasFactory;
+    use HasFactory;
 
-   protected $fillable = [
+protected $fillable = [
     'nombre',
     'tipo',
     'precio_por_hora',
     'estado',
-   ];
-   public function reservas()
+];
+public function reservas()
     {
         return $this->hasMany(Reserva::class);
     }
