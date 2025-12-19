@@ -22,10 +22,17 @@ return new class extends Migration
             $table->time('hora_inicio');
             $table->time('hora_fin');
             $table->enum('estado', ['pendiente', 'confirmada', 'cancelada'])->default('pendiente');
-            // $table->foregnId('factura_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('cancha_id')->constrained('canchas')->onDelete('cascade')->nullable();
+            $table->foreignId('facturas_id')->constrained('facturas')->onDelete('cascade')->nullable(); // Asegúrate de que facturas exista primero
             $table->timestamps();           
         });
+
+
+        Schema::table('facturas', function (Blueprint $table) {
+            $table->foreign('reservas_id')->references('id')->on('reservas')->onDelete('cascade');
+        });
     }
+    
 
     /**
      * Reverse the migrations.

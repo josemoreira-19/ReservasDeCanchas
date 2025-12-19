@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('facturas', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('reservas_id')->constrained('reservas')->onDelete('cascade');
+            $table->unsignedBigInteger('reservas_id')->nullable();
             $table->date('fecha_emision');
             $table->decimal('subtotal', 10, 2);
             $table->decimal('impuestos', 10, 2);  
