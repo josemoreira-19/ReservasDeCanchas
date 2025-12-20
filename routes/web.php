@@ -32,18 +32,20 @@ Route::middleware('auth')->group(function () {
     // =============== rutas de Canchas =================
     Route::get('/canchas', [CanchaController::class, 'index'])->name('canchas.index');
 
+
+    // RUTAS SOLO PARA ADMINS
+    Route::middleware(['auth', 'can:manage-canchas'])->group(function () {
+        Route::post('/canchas', [CanchaController::class, 'store'])->name('canchas.store');
+        Route::put('/canchas/{cancha}', [CanchaController::class, 'update'])->name('canchas.update');
+        Route::delete('/canchas/{cancha}', [CanchaController::class, 'destroy'])->name('canchas.destroy');
+    });
+
+
 });
 
 
 
 
-
-// RUTAS SOLO PARA ADMINS
-Route::middleware(['auth', 'can:manage-canchas'])->group(function () {
-    Route::post('/canchas', [CanchaController::class, 'store'])->name('canchas.store');
-    Route::put('/canchas/{cancha}', [CanchaController::class, 'update'])->name('canchas.update');
-    Route::delete('/canchas/{cancha}', [CanchaController::class, 'destroy'])->name('canchas.destroy');
-});
 
 
 
