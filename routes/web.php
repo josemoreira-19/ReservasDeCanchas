@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CanchaController;
 use Inertia\Inertia;
 
 // Route::get('/', function () {
@@ -23,9 +24,38 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    // =============== rutas de perfil =================
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // =============== rutas de Canchas =================
+    Route::get('/canchas', [CanchaController::class, 'index'])->name('canchas.index');
+
 });
+
+
+
+
+
+// RUTAS SOLO PARA ADMINS
+Route::middleware(['auth', 'can:manage-canchas'])->group(function () {
+    Route::post('/canchas', [CanchaController::class, 'store'])->name('canchas.store');
+    Route::put('/canchas/{cancha}', [CanchaController::class, 'update'])->name('canchas.update');
+    Route::delete('/canchas/{cancha}', [CanchaController::class, 'destroy'])->name('canchas.destroy');
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 require __DIR__.'/auth.php';
