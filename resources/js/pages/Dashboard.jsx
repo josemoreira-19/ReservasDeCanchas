@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 
 export default function Dashboard() {
     return (
@@ -17,7 +18,14 @@ export default function Dashboard() {
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
                             You're logged in!
-                        </div>
+                            <p>Go to canchas section to view available fields.</p>
+                            <Link 
+                                href={route('canchas.index')} 
+                                className="text-blue-600 hover:underline"
+                            >
+                                Click aquí para ir a las canchas
+                            </Link>
+                        </div>  
                     </div>
                 </div>
             </div>

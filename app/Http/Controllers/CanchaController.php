@@ -12,17 +12,18 @@ class CanchaController extends Controller
      * Muestra la lista de canchas.
      * Sirve tanto para Admin como para Cliente.
      */
-    public function index()
-    {
-        // Eloquent: Trae todas las canchas de la DB
-        $canchas = Cancha::all();
+public function index()
+{
+    $canchas = Cancha::all();
 
-        // Inertia: Renderiza el componente React 'Canchas/Index' y le pasa los datos
-        return Inertia::render('Canchas/Index', [
-            'canchas' => $canchas
-        ]);
-    }
-
+    // Esto busca el archivo resources/js/Pages/Canchas/Index.jsx
+    return Inertia::render('Canchas/Index', [
+        'canchas' => $canchas,
+        'auth' => [
+            'user' => auth()->user(), // Para saber en React si es admin o cliente
+        ]
+    ]);
+}
     /**
      * Guarda una nueva cancha (Solo Admin).
      */
