@@ -20,7 +20,7 @@ class Factura extends Model
         'pago'
     ];
 
-      public function reserva()
+    public function reserva()
     {
         return $this->belongsTo(Reserva::class, 'reservas_id');
     }

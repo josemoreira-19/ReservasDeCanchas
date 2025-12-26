@@ -23,7 +23,7 @@ return new class extends Migration
             $table->time('hora_fin');
             $table->enum('estado', ['pendiente', 'confirmada', 'cancelada'])->default('pendiente');
             $table->foreignId('cancha_id')->constrained('canchas')->onDelete('cascade')->nullable();
-            $table->foreignId('facturas_id')->constrained('facturas')->onDelete('cascade')->nullable(); // Asegúrate de que facturas exista primero
+            $table->foreignId('facturas_id')->nullable()->constrained('facturas')->onDelete('cascade');
             $table->timestamps();           
         });
 

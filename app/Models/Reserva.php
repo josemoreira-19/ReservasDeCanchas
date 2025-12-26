@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Reserva extends Model
 {
@@ -31,10 +32,14 @@ class Reserva extends Model
         return $this->belongsTo(cancha::class);
     }   
 
+    // public function factura()
+    // {
+    //     return $this->belongsTo(factura::class);
+    // }   
     public function factura()
     {
-        return $this->belongsTo(factura::class);
-    }   
+        return $this->belongsTo(Factura::class, 'facturas_id');
+    }
 
     public function scopeEstado($query, $estado)
     {

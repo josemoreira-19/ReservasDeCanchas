@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CanchaController;
+use App\Http\Controllers\ReservaController;
 use Inertia\Inertia;
 
 // Route::get('/', function () {
@@ -31,6 +32,7 @@ Route::middleware('auth')->group(function () {
 
     // =============== rutas de Canchas =================
     Route::get('/canchas', [CanchaController::class, 'index'])->name('canchas.index');
+    Route::post('/reservas', [ReservaController::class, 'store'])->name('reservas.store');
 
 
     // RUTAS SOLO PARA ADMINS
@@ -42,22 +44,6 @@ Route::middleware('auth')->group(function () {
 
 
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 require __DIR__.'/auth.php';
