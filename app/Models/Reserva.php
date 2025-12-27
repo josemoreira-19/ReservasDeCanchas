@@ -5,10 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+
 class Reserva extends Model
 {
-    protected $table ='reservas';
+
     use HasFactory;
+    protected $table ='reservas';
+
 
     protected $fillable =[
         'user_id',

@@ -30,6 +30,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // ============== rutas no se de que aun =================
+    Route::get('/api/canchas/{cancha}/disponibilidad', [App\Http\Controllers\ReservaController::class, 'consultarDisponibilidad'])->name('api.canchas.disponibilidad');
+
+
     // =============== rutas de Canchas =================
     Route::get('/canchas', [CanchaController::class, 'index'])->name('canchas.index');
     Route::post('/reservas', [ReservaController::class, 'store'])->name('reservas.store');
