@@ -18,7 +18,7 @@ return new class extends Migration
             $table->decimal('subtotal', 10, 2);
             $table->decimal('impuestos', 10, 2);  
             $table->decimal('total', 10, 2);
-            $table->enum('metodo', ['efectivo', 'transferencia', 'targeta'])->default('efectivo');
+            $table->enum('metodo', ['efectivo', 'transferencia', 'tarjeta'])->default('efectivo');
             $table->enum('pago', ['pendiente', 'pagado'])->default('pendiente');
             $table->timestamps();
         });

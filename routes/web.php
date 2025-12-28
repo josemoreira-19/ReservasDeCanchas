@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CanchaController;
 use App\Http\Controllers\ReservaController;
+use App\Http\Controllers\FacturaController;
 use Inertia\Inertia;
 
 // Route::get('/', function () {
@@ -30,7 +31,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // ============== rutas no se de que aun =================
+    Route::get('/facturas/{reserva}/pago', [FacturaController::class, 'pago'])->name('facturas.pago');
+
+    // ============== consultar disponibilidad =================
     Route::get('/api/canchas/{cancha}/disponibilidad', [App\Http\Controllers\ReservaController::class, 'consultarDisponibilidad'])->name('api.canchas.disponibilidad');
 
 

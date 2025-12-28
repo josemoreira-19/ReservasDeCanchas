@@ -2,45 +2,54 @@ import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import ReservaModal from '@/Components/ReservaModal';
-import CalendarioSemanal from '@/Components/CalendarioSemanal'; 
+import CalendarioSemanal from '@/Components/CalendarioSemanal';
+import ModalExito from '@/Components/ModalExito'; // <--- 1. IMPORTAR EL NUEVO MODAL
 
 export default function Index({ auth, canchas }) {
-    // Estado para el Modal de Formulario (Reserva)
+    // --- ESTADOS ---
     const [modalReservaAbierto, setModalReservaAbierto] = useState(false);
-    
-    // Estado para el Modal de Calendario
     const [modalCalendarioAbierto, setModalCalendarioAbierto] = useState(false);
-    
     const [canchaSeleccionada, setCanchaSeleccionada] = useState(null);
-    const [preDatosReserva, setPreDatosReserva] = useState(null); // Datos pre-llenados
+    const [preDatosReserva, setPreDatosReserva] = useState(null);
 
-    // 1. Abrir Calendario
+    // NUEVOS ESTADOS PARA EL MODAL DE ÉXITO
+    const [modalExitoAbierto, setModalExitoAbierto] = useState(false); // <--- 2. ESTADO VISIBILIDAD
+    const [idReservaCreada, setIdReservaCreada] = useState(null);      // <--- 3. ESTADO PARA EL ID
+
+    // --- FUNCIONES ---
+
     const abrirHorarios = (cancha) => {
         setCanchaSeleccionada(cancha);
         setModalCalendarioAbierto(true);
     };
 
-    // 2. Click en una celda "Libre" del calendario
     const iniciarReservaDesdeCalendario = (cancha, fecha, hora) => {
-        setPreDatosReserva({ fecha, hora }); // Guardamos lo que seleccionó
-        setModalCalendarioAbierto(false);    // Cerramos calendario
-        setModalReservaAbierto(true);        // Abrimos formulario final
+        setPreDatosReserva({ fecha, hora });
+        setModalCalendarioAbierto(false);
+        setModalReservaAbierto(true);
     };
 
-    const manejarExito = () => {
-        router.reload({ only: ['canchas'] });
+    // MODIFICAMOS ESTA FUNCIÓN PARA RECIBIR EL ID Y ABRIR EL MODAL DE ÉXITO
+    const manejarExito = (nuevoId) => {
+        setIdReservaCreada(nuevoId);      // Guardamos el ID que nos manda el formulario
+        setModalReservaAbierto(false);    // Cerramos el formulario de reserva
+        setModalExitoAbierto(true);       // <--- 4. ABRIMOS EL MODAL DE ÉXITO
+        
+        // Recargamos la tabla de fondo para que se vea ocupada la cancha
+        router.reload({ only: ['canchas'] }); 
     };
 
     return (
         <AuthenticatedLayout user={auth.user}>
             <Head title="Canchas" />
+            
+            {/* ... (Toda la parte de la tabla y encabezados que ya tienes igual) ... */}
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                         <h1 className="text-2xl font-bold mb-4">Listado de Canchas</h1>
-                        
-                        {/* Tabla de canchas (Igual que antes, solo cambia el botón) */}
                         <table className="w-full text-left border-collapse">
+                            {/* ... (Tu tabla de canchas) ... */}
                             <thead>
                                 <tr className="border-b">
                                     <th className="p-2">Nombre</th>
@@ -69,10 +78,6 @@ export default function Index({ auth, canchas }) {
                                                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded shadow transition flex items-center justify-center gap-2 mx-auto"
                                                 disabled={cancha.estado !== 'disponible'}
                                             >
-                                                {/* Icono de calendario SVG */}
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
                                                 Ver Horarios
                                             </button>
                                         </td>
@@ -84,7 +89,9 @@ export default function Index({ auth, canchas }) {
                 </div>
             </div>
 
-            {/* MODAL 1: CALENDARIO SEMANAL */}
+            {/* --- AQUÍ VAN LOS MODALES --- */}
+
+            {/* MODAL 1: CALENDARIO */}
             <CalendarioSemanal 
                 isOpen={modalCalendarioAbierto}
                 onClose={() => setModalCalendarioAbierto(false)}
@@ -92,17 +99,24 @@ export default function Index({ auth, canchas }) {
                 onReservarClick={iniciarReservaDesdeCalendario}
             />
 
-            {/* MODAL 2: FORMULARIO DE RESERVA (Modificado para recibir preDatos) */}
+            {/* MODAL 2: FORMULARIO */}
             <ReservaModal 
                 isOpen={modalReservaAbierto} 
                 onClose={() => {
                     setModalReservaAbierto(false);
-                    setPreDatosReserva(null); // Limpiar datos al cerrar
+                    setPreDatosReserva(null);
                 }}
                 cancha={canchaSeleccionada}
-                onSuccess={manejarExito}
-                // Pasa los datos pre-seleccionados al modal si tu componente lo soporta
+                onSuccess={manejarExito} // Aquí pasamos la función modificada
                 initialData={preDatosReserva} 
+            />
+
+            {/* MODAL 3: ÉXITO (NUEVO) */}
+            {/* <--- 5. AQUÍ AGREGAS EL COMPONENTE NUEVO */}
+            <ModalExito 
+                isOpen={modalExitoAbierto}
+                onClose={() => setModalExitoAbierto(false)}
+                reservaId={idReservaCreada}
             />
 
         </AuthenticatedLayout>

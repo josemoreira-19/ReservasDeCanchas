@@ -24,6 +24,7 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
     // 2. AUTO-RELLENAR DATOS DESDE EL CALENDARIO
     useEffect(() => {
         if (initialData) {
+            setErrors({});
             setFormData(prev => ({
                 ...prev,
                 fecha_reserva: initialData.fecha, // Ej: "2025-12-27"
@@ -44,20 +45,23 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
         setErrors({});
 
         try {
-            await axios.post('/reservas', {
+            const response = await axios.post('/reservas', {
                 cancha_id: cancha.id,
                 fecha_reserva: formData.fecha_reserva,
                 hora_inicio: formData.hora_inicio,
                 duracion_horas: formData.duracion_horas
             });
 
-            alert('¡Reserva creada con éxito!');
-            onSuccess();
+            onSuccess(response.data.reserva_id);
             onClose(); 
 
         } catch (error) {
+// Manejo de errores (Validación 422 o Servidor 500)
             if (error.response && error.response.status === 422) {
                 setErrors(error.response.data.errors);
+            } else if (error.response && error.response.data && error.response.data.general) {
+                 // Para capturar el error 'general' que creamos en el controlador
+                setErrors({ general: error.response.data.general });
             } else {
                 alert('Ocurrió un error inesperado.');
                 console.error(error);

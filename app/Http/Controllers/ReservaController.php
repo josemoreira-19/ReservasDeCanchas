@@ -107,7 +107,7 @@ class ReservaController extends Controller
                 'duracion_horas'        => $duracion,
                 'precio_alquiler_total' => $precioTotal,
                 'monto_comprobante'     => 0,
-                'estado'                => 'confirmada',
+                'estado'                => 'pendiente',
                 'facturas_id'           => null,
             ]);
 
@@ -127,7 +127,10 @@ class ReservaController extends Controller
 
             DB::commit();
 
-            return redirect()->route('canchas.index')->with('success', 'Reserva realizada con éxito.');
+            return response()->json([
+                'mensaje' => 'Reserva creada',
+                'reserva_id' => $reserva->id // Devolvemos el ID de la nueva reserva
+            ], 200);
 
         } catch (\Exception $e) {
             DB::rollBack();

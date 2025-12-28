@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import 'dayjs/locale/es'; // Para días en español
+import 'dayjs/locale/es'; 
 
 dayjs.locale('es');
 
@@ -12,7 +12,7 @@ export default function CalendarioSemanal({ isOpen, onClose, cancha, onReservarC
     const [reservas, setReservas] = useState([]);
     const [loading, setLoading] = useState(false);
 
-    // Generar horas (de 6 a 23)
+    // Generar horas (de 6 a 22)
     const horas = Array.from({ length: 17 }, (_, i) => i + 6); 
     
     // Generar los 7 días de la semana actual
@@ -23,7 +23,6 @@ export default function CalendarioSemanal({ isOpen, onClose, cancha, onReservarC
         const fetchDisponibilidad = async () => {
             setLoading(true);
             try {
-                // Ajusta la URL si tu ruta de API es diferente
                 const response = await axios.get(`/api/canchas/${cancha.id}/disponibilidad`, {
                     params: { fecha_inicio: fechaReferencia.format('YYYY-MM-DD') }
                 });
