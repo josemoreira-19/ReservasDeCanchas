@@ -37,6 +37,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/canchas/{cancha}/disponibilidad', [App\Http\Controllers\ReservaController::class, 'consultarDisponibilidad'])->name('api.canchas.disponibilidad');
 
 
+// ================ver el historial de reservas y facturas del usuario =================
+Route::get('/mis-reservas', [ReservaController::class, 'misReservas'])->name('reservas.mis-reservas');
+Route::post('/reservas/{reserva}/cancelar', [ReservaController::class, 'cancelar'])->name('reservas.cancelar');
+Route::post('/facturas/{reserva}/procesar', [FacturaController::class, 'procesar'])->name('facturas.procesar');
+
     // =============== rutas de Canchas =================
     Route::get('/canchas', [CanchaController::class, 'index'])->name('canchas.index');
     Route::post('/reservas', [ReservaController::class, 'store'])->name('reservas.store');

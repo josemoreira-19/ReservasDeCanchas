@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class ReservaController extends Controller
 {
@@ -173,4 +174,49 @@ class ReservaController extends Controller
             'fin_semana' => $fechaFin->format('Y-m-d')
         ]);
     }
+
+
+    public function misReservas()
+    {
+        $userId = auth()->id();
+
+        $todasLasReservas = Reserva::with(['cancha', 'factura'])
+            ->where('user_id', $userId)
+            ->orderByDesc('fecha')
+            ->orderByDesc('hora_inicio')
+            ->get();
+
+        // NUEVA REGLA: Solo pasan a "Facturas" si se pagó el 100% (o más por si acaso)
+        $reservasFacturables = $todasLasReservas->filter(function ($reserva) {
+            if ($reserva->precio_alquiler_total <= 0) return false;
+            
+            // Calculamos saldo restante
+            $saldoPendiente = $reserva->precio_alquiler_total - $reserva->monto_comprobante;
+
+            // Si el saldo es 0 (o menos, por errores de decimales), está pagada
+            return $saldoPendiente <= 0.01; 
+        });
+
+        return Inertia::render('Reservas/MisReservas', [
+            'reservas' => $todasLasReservas,
+            'facturasDisponibles' => $reservasFacturables->values()
+        ]);
+    }
+
+    // NUEVA FUNCIÓN PARA CANCELAR
+    public function cancelar(Reserva $reserva)
+    {
+        // Seguridad: Solo el dueño puede cancelar
+        if (auth()->id() !== $reserva->user_id) {
+            abort(403);
+        }
+
+        // Opcional: Validar que no cancele una reserva que ya pasó
+        // if (Carbon::parse($reserva->fecha)->isPast()) { ... error ... }
+
+        $reserva->update(['estado' => 'cancelada']);
+
+        return back()->with('success', 'Reserva cancelada correctamente.');
+    }
+
 }

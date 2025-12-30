@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import ReservaModal from '@/Components/ReservaModal';
 import CalendarioSemanal from '@/Components/CalendarioSemanal';
-import ModalExito from '@/Components/ModalExito'; // <--- 1. IMPORTAR EL NUEVO MODAL
+// import ModalExito from '@/Components/ModalExito'; // 
 
 export default function Index({ auth, canchas }) {
     // --- ESTADOS ---
@@ -12,9 +12,8 @@ export default function Index({ auth, canchas }) {
     const [canchaSeleccionada, setCanchaSeleccionada] = useState(null);
     const [preDatosReserva, setPreDatosReserva] = useState(null);
 
-    // NUEVOS ESTADOS PARA EL MODAL DE ÉXITO
-    const [modalExitoAbierto, setModalExitoAbierto] = useState(false); // <--- 2. ESTADO VISIBILIDAD
-    const [idReservaCreada, setIdReservaCreada] = useState(null);      // <--- 3. ESTADO PARA EL ID
+    // const [modalExitoAbierto, setModalExitoAbierto] = useState(false); // <--- 2. ESTADO VISIBILIDAD
+    // const [idReservaCreada, setIdReservaCreada] = useState(null);      // <--- 3. ESTADO PARA EL ID
 
     // --- FUNCIONES ---
 
@@ -30,13 +29,16 @@ export default function Index({ auth, canchas }) {
     };
 
     // MODIFICAMOS ESTA FUNCIÓN PARA RECIBIR EL ID Y ABRIR EL MODAL DE ÉXITO
-    const manejarExito = (nuevoId) => {
-        setIdReservaCreada(nuevoId);      // Guardamos el ID que nos manda el formulario
-        setModalReservaAbierto(false);    // Cerramos el formulario de reserva
-        setModalExitoAbierto(true);       // <--- 4. ABRIMOS EL MODAL DE ÉXITO
+    // const manejarExito = (nuevoId) => {
+    //     setIdReservaCreada(nuevoId);      // Guardamos el ID que nos manda el formulario
+    //     setModalReservaAbierto(false);    // Cerramos el formulario de reserva
+    //     setModalExitoAbierto(true);       // <--- 4. ABRIMOS EL MODAL DE ÉXITO
         
-        // Recargamos la tabla de fondo para que se vea ocupada la cancha
-        router.reload({ only: ['canchas'] }); 
+    //     // Recargamos la tabla de fondo para que se vea ocupada la cancha
+    //     router.reload({ only: ['canchas'] }); 
+    // };
+    const manejarExito = (nuevoId) => {
+        router.visit(route('facturas.pago', nuevoId));
     };
 
     return (
@@ -113,11 +115,11 @@ export default function Index({ auth, canchas }) {
 
             {/* MODAL 3: ÉXITO (NUEVO) */}
             {/* <--- 5. AQUÍ AGREGAS EL COMPONENTE NUEVO */}
-            <ModalExito 
+            {/* <ModalExito 
                 isOpen={modalExitoAbierto}
                 onClose={() => setModalExitoAbierto(false)}
                 reservaId={idReservaCreada}
-            />
+            /> */}
 
         </AuthenticatedLayout>
     );

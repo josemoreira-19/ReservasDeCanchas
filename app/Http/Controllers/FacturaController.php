@@ -37,4 +37,52 @@ class FacturaController extends Controller
             'metodosDisponibles' => $metodosPago
         ]);
     }
+
+    public function procesar(Request $request, Reserva $reserva)
+    {
+        // 1. Calcular cuánto debe REALMENTE
+        $saldoPendiente = $reserva->precio_alquiler_total - $reserva->monto_comprobante;
+
+        // 2. Validaciones estrictas
+        $request->validate([
+            'metodo' => 'required',
+            'monto' => [
+                'required',
+                'numeric',
+                'min:0.01', // No permite 0 ni negativos
+                'max:' . $saldoPendiente // No permite pagar más de lo que debe
+            ],
+            // Si usas el código "confia pelado", no necesitas validarlo aquí si ya lo haces en el front,
+            // pero podrías agregar un campo 'codigo' nullable.
+        ], [
+            'monto.max' => 'El monto ingresado supera la deuda pendiente ($' . number_format($saldoPendiente, 2) . ').',
+            'monto.min' => 'El monto debe ser mayor a 0.'
+        ]);
+
+        $montoAbonado = $request->monto;
+
+        // 3. ACTUALIZAR RESERVA
+        $nuevoMonto = $reserva->monto_comprobante + $montoAbonado;
+        
+        $datosActualizar = ['monto_comprobante' => $nuevoMonto];
+
+        // Regla del 50% para confirmar
+        $mitad = $reserva->precio_alquiler_total / 2;
+        if ($reserva->estado === 'pendiente' && $nuevoMonto >= $mitad) {
+            $datosActualizar['estado'] = 'confirmada';
+        }
+
+        $reserva->update($datosActualizar);
+
+        // 4. ACTUALIZAR FACTURA
+        // Si la deuda queda en 0 (o casi 0 por decimales), se marca pagada
+        $estaPagada = ($reserva->precio_alquiler_total - $nuevoMonto) <= 0.01;
+        
+        $reserva->factura->update([
+            'pago' => $estaPagada ? 'pagado' : 'pendiente',
+            'metodo' => $request->metodo
+        ]);
+
+        return redirect()->route('reservas.mis-reservas')->with('success', 'Pago registrado correctamente.');
+    }
 }
