@@ -6,6 +6,7 @@ use App\Models\Reserva;
 use App\Models\Factura;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class FacturaController extends Controller
 {
@@ -85,4 +86,30 @@ class FacturaController extends Controller
 
         return redirect()->route('reservas.mis-reservas')->with('success', 'Pago registrado correctamente.');
     }
+
+    public function descargarPDF($reserva_id)
+{
+    // 1. Buscar datos
+    $reserva = Reserva::with(['factura', 'cancha', 'user'])->findOrFail($reserva_id);
+    
+    // 2. Validar seguridad (Solo admin o dueño)
+    if (auth()->id() !== $reserva->user_id && auth()->user()->role !== 'admin') {
+        abort(403);
+    }
+    
+    // 3. Validar que esté pagada (Opcional, según tu regla de negocio)
+    // Si solo permites imprimir si está pagada al 100%:
+    if ($reserva->monto_comprobante < $reserva->precio_alquiler_total) {
+        return back()->with('error', 'Solo puedes descargar la factura de reservas totalmente pagadas.');
+    }
+
+    $factura = $reserva->factura;
+
+    // 4. Generar PDF
+    // 'pdf.factura' es la ruta de la vista: resources/views/pdf/factura.blade.php
+    $pdf = Pdf::loadView('pdf.factura', compact('reserva', 'factura'));
+
+    // 5. Descargar (stream para ver en navegador, download para bajar directo)
+    return $pdf->stream('factura-' . $reserva->id . '.pdf');
+}
 }

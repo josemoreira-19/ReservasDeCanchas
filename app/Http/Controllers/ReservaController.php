@@ -203,7 +203,7 @@ class ReservaController extends Controller
         ]);
     }
 
-    // NUEVA FUNCIÓN PARA CANCELAR
+    // FUNCIÓN PARA CANCELAR
     public function cancelar(Reserva $reserva)
     {
         // Seguridad: Solo el dueño puede cancelar
@@ -211,12 +211,27 @@ class ReservaController extends Controller
             abort(403);
         }
 
-        // Opcional: Validar que no cancele una reserva que ya pasó
-        // if (Carbon::parse($reserva->fecha)->isPast()) { ... error ... }
-
         $reserva->update(['estado' => 'cancelada']);
 
         return back()->with('success', 'Reserva cancelada correctamente.');
     }
+
+    public function cancelarPorAbandono(Reserva $reserva)
+{
+    // SEGURIDAD: Solo borramos si sigue en estado 'pendiente' y el usuario es el dueño
+    if ($reserva->estado === 'pendiente' && $reserva->user_id === auth()->id()) {
+        
+        // Si tiene factura creada, la borramos primero (cascada)
+        if ($reserva->factura) {
+            $reserva->factura->delete();
+        }
+
+        $reserva->delete();
+        
+        return response()->json(['message' => 'Reserva eliminada por abandono']);
+    }
+
+    return response()->json(['message' => 'No se pudo eliminar'], 400);
+}
 
 }

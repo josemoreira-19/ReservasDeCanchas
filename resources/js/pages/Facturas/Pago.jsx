@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, usePage } from '@inertiajs/react';
+import React, { useState, useEffect } from 'react';
 
 export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
     const { errors } = usePage().props; 
@@ -11,6 +11,7 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
     const restante = total - abonado;
     const minimoParaConfirmar = total / 2;
     const leFaltaParaConfirmar = Math.max(0, minimoParaConfirmar - abonado);
+    const [pagoCompletado, setPagoCompletado] = useState(false);
 
     // ESTADOS
     const [metodoSeleccionado, setMetodoSeleccionado] = useState(metodosDisponibles[0]?.id || '');
@@ -45,7 +46,7 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
         // C. Validar código "Confía Pelado"
         if (metodoSeleccionado !== 'efectivo') {
             if (codigoTransaccion.toLowerCase().trim() !== 'confia pelado') {
-                setErrorLocal('El código de comprobante es incorrecto. Intenta con "confia pelado".');
+                setErrorLocal('El código de comprobante es incorrecto.');
                 return; // Detenemos aquí
             }
         }
@@ -58,9 +59,73 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
             codigo: codigoTransaccion
         }, {
             onError: () => setProcesando(false),
-            onFinish: () => setProcesando(false)
+            onFinish: () => setProcesando(false),
+            // 3. IMPORTANTE: Si sale bien, marcamos la bandera para que el Guardián nos deje salir
+            onSuccess: () => {
+                setPagoCompletado(true); // <--- ¡AQUÍ ACTIVAMOS EL PASE DE SALIDA!
+            }
         });
     };
+
+    useEffect(() => {
+        // --- 1. DETECTAR NAVEGACIÓN INTERNA (Clic en Navbar de Inertia) ---
+        const removeListener = router.on('before', (event) => {
+            if (pagoCompletado) return; // Si pagó, todo bien.
+
+            const confirmacion = window.confirm(
+                '¡ADVERTENCIA!\n\nNo has completado el abono mínimo del 50%.\nSi sales ahora, la reserva se eliminará y perderás el horario.\n\n¿Estás seguro de salir?'
+            );
+
+            if (!confirmacion) {
+                // El usuario se arrepiente, NO sale.
+                event.preventDefault();
+            } else {
+                // El usuario DICE SÍ.
+                // Usamos axios para borrar (Inertia espera un poco, así que axios suele funcionar aquí)
+                axios.delete(route('reservas.cancelar-abandono', reserva.id))
+                    .catch(err => console.error("Error borrando reserva:", err));
+            }
+        });
+
+        // --- 2. DETECTAR CIERRE DE PESTAÑA / RECARGA (La parte difícil) ---
+        const handleBeforeUnload = (e) => {
+            if (!pagoCompletado) {
+                // Esto muestra la alerta nativa del navegador "¿Quieres salir?"
+                e.preventDefault();
+                e.returnValue = ''; 
+            }
+        };
+
+        // Esta función se ejecuta JUSTO cuando la página se muere (unload)
+        const handleUnload = () => {
+            if (!pagoCompletado) {
+                // AQUÍ ESTÁ EL TRUCO: sendBeacon es más rápido y seguro al cerrar
+                // Necesitamos la URL y el Token CSRF
+                const url = route('reservas.cancelar-abandono', reserva.id);
+                const csrfToken = usePage().props.csrf_token; // Asegúrate de que Inertia te pase esto, o búscalo en el meta tag
+
+                // Opción A: sendBeacon (Lo más robusto)
+                // Nota: sendBeacon envía POST por defecto. Tu ruta es DELETE.
+                // Laravel permite simular DELETE enviando un campo _method.
+                const data = new FormData();
+                data.append('_method', 'DELETE');
+                data.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+                
+                navigator.sendBeacon(url, data);
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        window.addEventListener('unload', handleUnload); // <--- AGREGADO
+
+        return () => {
+            removeListener();
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.removeEventListener('unload', handleUnload);
+        };
+    }, [pagoCompletado, reserva.id]);
+
+
 
     return (
         <AuthenticatedLayout user={auth.user}>
@@ -70,7 +135,7 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
                 <div className="max-w-5xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-xl sm:rounded-lg grid grid-cols-1 md:grid-cols-2">
                         
-                        {/* --- COLUMNA IZQUIERDA: RESUMEN (Igual que antes) --- */}
+                        {/*COLUMNA IZQUIERDA: RESUMEN */}
                         <div className="p-8 bg-gray-50 border-r border-gray-200 flex flex-col justify-between">
                             <div>
                                 <h2 className="text-xl font-bold text-gray-800 mb-6">Detalle de Deuda</h2>
@@ -83,6 +148,11 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
                                         <span>Fecha:</span>
                                         <span className="font-semibold text-gray-900">{reserva.fecha}</span>
                                     </div>
+                                    <div className="flex justify-between">
+                                        <span>Hora:</span>
+                                        <span className="font-semibold text-gray-900"> de {reserva.hora_inicio.split(':')[0]} a {reserva.hora_fin.split(':')[0]}</span>
+                                    </div>
+
                                     <hr className="border-gray-200"/>
                                     <div className="flex justify-between items-center">
                                         <span>Total Reserva:</span>
@@ -115,7 +185,7 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
                                 </div>
                             )}
                             
-                             {restante <= 0 && (
+                            {restante <= 0 && (
                                 <div className="mt-6 p-4 bg-green-100 border border-green-300 text-green-800 rounded-lg text-center font-bold">
                                     ¡Esta reserva está totalmente pagada!
                                 </div>
@@ -168,7 +238,7 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
                                                 setCodigoTransaccion(e.target.value);
                                                 setErrorLocal(null); // Borramos error al escribir
                                             }}
-                                            placeholder='Escribe "confia pelado"'
+                                            placeholder='Comprobante de pago'
                                             className="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                                         />
                                     </div>

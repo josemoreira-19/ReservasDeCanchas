@@ -41,7 +41,14 @@ Route::middleware('auth')->group(function () {
 Route::get('/mis-reservas', [ReservaController::class, 'misReservas'])->name('reservas.mis-reservas');
 Route::post('/reservas/{reserva}/cancelar', [ReservaController::class, 'cancelar'])->name('reservas.cancelar');
 Route::post('/facturas/{reserva}/procesar', [FacturaController::class, 'procesar'])->name('facturas.procesar');
+Route::get('/reservas/{reserva}/pdf', [FacturaController::class, 'descargarPDF'])->name('facturas.pdf');
 
+
+// Ruta para eliminar reserva pendiente si el usuario abandona el pago
+Route::post('/reservas/{reserva}/cancelar-abandono', [ReservaController::class, 'cancelarPorAbandono'])
+    ->name('reservas.cancelar-abandono');
+
+    
     // =============== rutas de Canchas =================
     Route::get('/canchas', [CanchaController::class, 'index'])->name('canchas.index');
     Route::post('/reservas', [ReservaController::class, 'store'])->name('reservas.store');
