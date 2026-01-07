@@ -6,6 +6,7 @@ use App\Models\Reserva;
 use App\Models\Factura;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class FacturaController extends Controller
 {
@@ -84,5 +85,29 @@ class FacturaController extends Controller
         ]);
 
         return redirect()->route('reservas.mis-reservas')->with('success', 'Pago registrado correctamente.');
+    }
+
+    public function descargarPDF($reserva_id)
+    {
+        // 1. Buscar datos
+        $reserva = Reserva::with(['factura', 'cancha', 'user'])->findOrFail($reserva_id);
+        
+        // 2. Seguridad: Solo el dueño o admin
+        if (auth()->id() !== $reserva->user_id && auth()->user()->role !== 'admin') {
+            abort(403);
+        }
+        
+        // 3. Validar si tiene factura
+        if (!$reserva->factura) {
+            return back()->with('error', 'Esta reserva no tiene factura generada.');
+        }
+
+        $factura = $reserva->factura;
+
+        // 4. Generar PDF
+        $pdf = Pdf::loadView('pdf.factura', compact('reserva', 'factura'));
+
+        // 5. Descargar (stream abre en navegador)
+        return $pdf->stream('factura-' . $reserva->id . '.pdf');
     }
 }

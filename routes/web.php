@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
 Route::get('/mis-reservas', [ReservaController::class, 'misReservas'])->name('reservas.mis-reservas');
 Route::post('/reservas/{reserva}/cancelar', [ReservaController::class, 'cancelar'])->name('reservas.cancelar');
 Route::post('/facturas/{reserva}/procesar', [FacturaController::class, 'procesar'])->name('facturas.procesar');
+Route::get('/reservas/{reserva}/pdf', [FacturaController::class, 'descargarPDF']) ->name('facturas.pdf');
 
     // =============== rutas de Canchas =================
     Route::get('/canchas', [CanchaController::class, 'index'])->name('canchas.index');

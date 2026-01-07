@@ -175,11 +175,40 @@ export default function MisReservas({ auth, reservas, facturasDisponibles }) {
                             // ... Tu grid de facturas ...
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 {facturasDisponibles.map(r => (
-                                    <div key={r.id} className="p-4 border rounded shadow-sm bg-gray-50">
-                                        <h4 className="font-bold">{r.cancha.nombre}</h4>
-                                        <p className="text-sm">{r.fecha}</p>
-                                        <button className="text-indigo-600 text-sm font-bold mt-2">Descargar PDF</button>
-                                    </div>
+                                    <article key={r.id} className="p-4 border rounded shadow-sm bg-gray-50 flex flex-col justify-between">
+                                        
+                                        {/* Cabecera con Título y Badge Azul */}
+                                        <header className='flex justify-between items-start mb-2'>
+                                            <h3 className="font-bold text-gray-800 text-md">{r.cancha.nombre}</h3>
+                                            
+                                            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">
+                                                Factura #{r.factura?.id || r.id}
+                                            </span>
+                                        </header>
+
+                                        <hr className="border-gray-200 mb-3"/>
+
+                                        {/* Detalles */}
+                                        <div className="text-sm text-gray-600 space-y-1 mb-3">
+                                            <p className="flex items-center gap-1">
+                                                {r.fecha}
+                                            </p>
+                                            <p className="flex items-center gap-1">
+                                                {r.hora_inicio.substring(0, 5)} - {r.hora_fin.substring(0, 5)}
+                                            </p>
+                                        </div>
+
+                                        {/* Botón de Descarga */}
+                                        <a 
+                                            href={route('facturas.pdf', r.id)} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            className="w-full mt-auto bg-white border border-gray-300 text-indigo-600 text-xs font-bold py-2 px-2 rounded hover:bg-indigo-50 transition text-center flex items-center justify-center gap-2"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> 
+                                            Descargar PDF
+                                        </a>
+                                    </article>
                                 ))}
                             </div>
                         )}
