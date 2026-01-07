@@ -30,6 +30,20 @@ export default function AuthenticatedLayout({ header, children }) {
                                 >
                                     Dashboard
                                 </NavLink>
+
+                                <NavLink 
+                                    href={route('canchas.index')}
+                                    active={route().current('canchas.index')}
+                                >
+                                    Reservar Cancha
+                                </NavLink>
+
+                                <NavLink 
+                                    href={route('reservas.mis-reservas')} 
+                                    active={route().current('reservas.mis-reservas')}
+                                >
+                                    Reservas & Facturas
+                                </NavLink>
                             </div>
                         </div>
 
@@ -134,6 +148,21 @@ export default function AuthenticatedLayout({ header, children }) {
                         >
                             Dashboard
                         </ResponsiveNavLink>
+
+                        <ResponsiveNavLink
+                            href={route('canchas.index')}
+                            active={route().current('canchas.index')}
+                        >
+                            Reservar Cancha
+                        </ResponsiveNavLink>
+
+                        <ResponsiveNavLink
+                            href={route('reservas.mis-reservas')}
+                            active={route().current('reservas.mis-reservas')}
+                        >
+                            Reservas & Facturas
+                        </ResponsiveNavLink>
+
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">
