@@ -2,7 +2,21 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule; // <--- Importante
+use App\Models\Reserva;                  // <--- Importamos el modelo
+use App\Models\Factura;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+// Esta tarea se ejecutará cada minuto
+Schedule::call(function () {
+    $limiteTiempo = now()->subMinutes(5);
+
+    $reservasCaducadas = Reserva::where('estado', 'pendiente')
+        ->where('monto_comprobante', 0) // <--- NUEVO: Solo si no ha pagado NADA
+        ->where('created_at', '<=', $limiteTiempo)
+        ->get();
+
+    foreach ($reservasCaducadas as $reserva) {
+        if ($reserva->factura) $reserva->factura->delete();
+        $reserva->delete();
+    }
+})->everyMinute(); // <--- Frecuencia: Cada minuto

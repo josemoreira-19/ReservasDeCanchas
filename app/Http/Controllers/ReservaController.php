@@ -140,6 +140,7 @@ class ReservaController extends Controller
         }
     }
 
+
     // --- FUNCIONES AUXILIARES ---
 
     public function calcularDesglosePrecio($precioTotal, $porcentajeImpuesto = 15)
@@ -175,6 +176,26 @@ class ReservaController extends Controller
         ]);
     }
 
+    public function cancelarPorAbandono(Reserva $reserva)
+    {
+        // SEGURIDAD: 
+        // 1. Que el usuario sea el dueño.
+        // 2. Que la reserva esté pendiente (para no borrar una pagada por error).
+        if ($reserva->user_id === auth()->id() && $reserva->estado === 'pendiente') {
+            
+            // Si ya se había generado factura, borrarla primero
+            if ($reserva->factura) {
+                $reserva->factura->delete();
+            }
+
+            $reserva->delete();
+
+            // Retornamos al inicio o dashboard con un mensaje
+            return redirect()->route('canchas.index')->with('success', 'Reserva cancelada correctamente.');
+        }
+
+        return back()->with('error', 'No se pudo cancelar la reserva.');
+    }
 
     public function misReservas()
     {
