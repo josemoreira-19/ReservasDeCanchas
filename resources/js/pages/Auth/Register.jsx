@@ -43,6 +43,23 @@ export default function Register() {
                     <InputError message={errors.name} className="mt-2" />
                 </div>
 
+                <div>
+                    <InputLabel htmlFor="cedula" value="Cédula / RUC" />
+
+                    <TextInput
+                        id="cedula"
+                        name="cedula"
+                        value={data.cedula}
+                        className="mt-1 block w-full"
+                        autoComplete="off"
+                        isFocused={true}
+                        onChange={(e) => setData('cedula', e.target.value)}
+                        required
+                    />
+
+                    <InputError message={errors.cedula} className="mt-2" />
+                </div>
+
                 <div className="mt-4">
                     <InputLabel htmlFor="email" value="Email" />
 
