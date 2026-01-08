@@ -31,6 +31,15 @@ export default function AuthenticatedLayout({ header, children }) {
                                     Dashboard
                                 </NavLink>
 
+                                {user.role === 'admin' && (
+                                    <NavLink 
+                                        href={route('usuarios.index')} 
+                                        active={route().current('usuarios.*')}
+                                    >
+                                        Usuarios
+                                    </NavLink>
+                                )}
+
                                 <NavLink 
                                     href={route('canchas.index')}
                                     active={route().current('canchas.index')}
@@ -148,6 +157,15 @@ export default function AuthenticatedLayout({ header, children }) {
                         >
                             Dashboard
                         </ResponsiveNavLink>
+
+                        {user.role === 'admin' && (
+                            <ResponsiveNavLink 
+                                href={route('usuarios.index')} 
+                                active={route().current('usuarios.*')}
+                            >
+                                Gestión de Usuarios
+                            </ResponsiveNavLink>
+                        )}
 
                         <ResponsiveNavLink
                             href={route('canchas.index')}

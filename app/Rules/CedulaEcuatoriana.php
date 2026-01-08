@@ -12,36 +12,38 @@ class CedulaEcuatoriana implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        // 1. Validar longitud inicial y que sean solo números
-        if (strlen($value) !== 10 || !is_numeric($value)) {
-            $fail('La cédula debe tener exactamente 10 dígitos numéricos.');
+        // 0. Limpieza: Quitamos espacios al inicio o final por si copiaron mal
+        $cedula = trim((string)$value);
+
+        // 1. Validar longitud y que sean solo números
+        if (strlen($cedula) !== 10 || !ctype_digit($cedula)) {
+            $fail('La cédula debe tener 10 dígitos numéricos.');
             return;
         }
 
         // 2. Validar código de provincia (dos primeros dígitos)
-        // 01-24 son provincias, 30 es para extranjeros residentes
-        $provincia = intval(substr($value, 0, 2));
+        $provincia = intval(substr($cedula, 0, 2));
         if ($provincia < 1 || ($provincia > 24 && $provincia !== 30)) {
-            $fail('El código de provincia (dos primeros dígitos) no es válido.');
+            $fail('El código de provincia no es válido.');
             return;
         }
 
         // 3. Validar tercer dígito (debe ser menor a 6 para personas naturales)
-        $digito3 = intval($value[2]);
-        if ($digito3 >= 6) {
-            // Nota: Si quisieras aceptar RUCs de empresas, la lógica cambia aquí.
-            // Para "Clientes Personas", esto es correcto.
-            $fail('El tercer dígito de la cédula es inválido para una persona natural.');
+        // Nota: Si el 3er dígito es 6 o 9 son casos especiales (empresas/públicas), 
+        // aquí asumimos validación estándar de ciudadano.
+        $tercerDigito = intval($cedula[2]);
+        if ($tercerDigito >= 6) {
+            $fail('Esta cédula no corresponde a una persona natural.');
             return;
         }
 
-        // 4. Algoritmo Módulo 10 (Suma de verificadores)
+        // 4. Algoritmo Módulo 10 (Sin decimales, método exacto)
         $coeficientes = [2, 1, 2, 1, 2, 1, 2, 1, 2];
         $suma = 0;
 
         for ($i = 0; $i < 9; $i++) {
-            $digito = intval($value[$i]);
-            $producto = $digito * $coeficientes[$i];
+            $valor = intval($cedula[$i]);
+            $producto = $valor * $coeficientes[$i];
 
             if ($producto >= 10) {
                 $producto -= 9;
@@ -49,20 +51,15 @@ class CedulaEcuatoriana implements ValidationRule
             $suma += $producto;
         }
 
-        // 5. Calcular dígito verificador
-        $decenaSuperior = ceil($suma / 10) * 10;
-        $digitoVerificadorCalculado = $decenaSuperior - $suma;
-        
-        // Si el resultado es 10, el dígito es 0
-        if ($digitoVerificadorCalculado == 10) {
-            $digitoVerificadorCalculado = 0;
-        }
+        // Cálculo del dígito verificador usando Módulo
+        $residuo = $suma % 10;
+        $verificadorCalculado = $residuo === 0 ? 0 : 10 - $residuo;
 
-        // 6. Comparar con el último dígito de la cédula
-        $ultimoDigitoReal = intval($value[9]);
+        // 5. Comparar con el último dígito real
+        $ultimoDigitoReal = intval($cedula[9]);
 
-        if ($digitoVerificadorCalculado !== $ultimoDigitoReal) {
-            $fail('El número de cédula no es válido (dígito verificador incorrecto).');
+        if ($verificadorCalculado !== $ultimoDigitoReal) {
+            $fail('El número de cédula no es válido.');
         }
     }
 }

@@ -28,5 +28,9 @@ class AppServiceProvider extends ServiceProvider
             // Retorna true si es admin, false si no lo es
             return $user->role === 'admin';
         });
+
+        Gate::define('isAdmin', function (User $user) {
+        return $user->role === 'admin';
+    });
     }
 }
