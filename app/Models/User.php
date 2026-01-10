@@ -56,4 +56,9 @@ class User extends Authenticatable
     {
         return $this->role === 'admin';
     }
+
+    public function reservations()
+    {
+        return $this->hasMany(Reserva::class, 'user_id');
+    }
 }
