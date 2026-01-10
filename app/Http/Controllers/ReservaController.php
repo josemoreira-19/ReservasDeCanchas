@@ -177,19 +177,23 @@ class ReservaController extends Controller
     // =============================================================
     // 3. ELIMINAR / CANCELAR
     // =============================================================
-    public function destroy($id)
-    {
-        $reserva = Reserva::findOrFail($id);
-        $user = auth()->user();
+    public function cancelar(Reserva $reserva)
+        {
+            $user = auth()->user();
 
-        // Seguridad
-        if ($user->role !== 'admin' && $user->id !== $reserva->user_id) {
-            abort(403);
+            // Seguridad: Solo Admin o el Dueño pueden cancelar
+            if ($user->role !== 'admin' && $user->id !== $reserva->user_id) {
+                abort(403, 'No tienes permiso para cancelar esta reserva.');
+            }
+
+            // Actualizamos estado
+            $reserva->update(['estado' => 'cancelada']);
+            
+            // Si tenía factura pendiente, la anulamos o marcamos (opcional)
+            // if ($reserva->factura) $reserva->factura->delete();
+
+            return back()->with('success', 'Reserva cancelada correctamente.');
         }
-
-        $reserva->update(['estado' => 'cancelada']);
-        return back()->with('success', 'Reserva cancelada correctamente.');
-    }
 
     // =============================================================
     // FUNCIONES AUXILIARES

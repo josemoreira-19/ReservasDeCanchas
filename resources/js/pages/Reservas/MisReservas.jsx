@@ -11,9 +11,9 @@ const EstadoBadge = ({ estado }) => {
     const estadoNorm = estado ? estado.toLowerCase() : 'pendiente';
     const colores = {
         pendiente: 'bg-yellow-100 text-yellow-800',
+        confirmada: 'bg-blue-100 text-blue-800', // Agregué confirmada por si usas ese estado
         pagado: 'bg-green-100 text-green-800',
-        cancelado: 'bg-red-100 text-red-800',
-        confirmado: 'bg-blue-100 text-blue-800'
+        cancelada: 'bg-red-100 text-red-800', // Corregido a 'cancelada' según tu DB
     };
     return (
         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${colores[estadoNorm] || 'bg-gray-100 text-gray-800'}`}>
@@ -22,9 +22,15 @@ const EstadoBadge = ({ estado }) => {
     );
 };
 
-const ModalDecision = ({ isOpen, onClose, onPagar, onCancelar, reserva }) => {
+const ModalDecision = ({ isOpen, onClose, onPagar, reserva }) => {
     if (!isOpen || !reserva) return null;
-    const pagadoTotalmente = parseFloat(reserva.monto_comprobante || 0) >= parseFloat(reserva.precio_alquiler_total || 0);
+    
+    // Verificamos si está pagado
+    const total = parseFloat(reserva.precio_alquiler_total || 0);
+    const pagado = parseFloat(reserva.monto_comprobante || 0);
+    const estaPagado = (total - pagado) <= 0.01;
+    const estaCancelada = reserva.estado === 'cancelada';
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm animate-fade-in-up">
@@ -34,22 +40,23 @@ const ModalDecision = ({ isOpen, onClose, onPagar, onCancelar, reserva }) => {
                     Fecha: {reserva.fecha}
                 </p>
                 <div className="flex flex-col gap-3">
-                    {reserva.estado !== 'cancelada' && !pagadoTotalmente && (
-                        <>
-                            <button onClick={onPagar} className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 font-medium">
-                                💳 Realizar Pago / Abono
-                            </button>
-                            <button onClick={onCancelar} className="w-full bg-red-100 text-red-700 py-2 rounded-lg hover:bg-red-200 font-medium">
-                                ❌ Cancelar Reserva
-                            </button>
-                        </>
+                    
+                    {/* CLIENTE: Solo puede Pagar si debe dinero y no está cancelada */}
+                    {!estaCancelada && !estaPagado && (
+                        <button onClick={onPagar} className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 font-medium">
+                            💳 Realizar Pago / Abono
+                        </button>
                     )}
-                    {/* Botón Imprimir en el Modal si ya pagó */}
-                    {pagadoTotalmente && (
+
+                    {/* CLIENTE: Solo puede Imprimir si está pagada y no cancelada */}
+                    {estaPagado && !estaCancelada && (
                          <button onClick={() => window.open(route('facturas.pdf', reserva.id), '_blank')} className="w-full bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-900 font-medium">
                             🖨️ Imprimir Comprobante
                         </button>
                     )}
+                    
+                    {/* ELIMINADO: Botón de cancelar para el cliente (Requerimiento cumplido) */}
+
                     <button onClick={onClose} className="w-full border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50">
                         Cerrar
                     </button>
@@ -69,13 +76,10 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
     const [reservaSeleccionada, setReservaSeleccionada] = useState(null); 
 
     // --- ACCIONES COMUNES ---
-    
-    // CORRECCIÓN 1: Usamos 'facturas.pago' como está en web.php
     const irAPagar = (reservaId) => {
         router.get(route('facturas.pago', reservaId));
     };
 
-    // CORRECCIÓN 2: Usamos 'facturas.pdf' como está en web.php
     const irAImprimir = (reservaId) => {
         window.open(route('facturas.pdf', reservaId), '_blank');
     };
@@ -89,7 +93,7 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
 
     const handleCancelarAdmin = (id) => {
         if(confirm('¿Seguro que deseas cancelar esta reserva permanentemente?')) {
-            router.delete(route('canchas.destroy', id)); // Ojo: Revisa si usas 'canchas.destroy' o 'reservas.cancelar' para eliminar
+            router.post(route('reservas.cancelar', id)); 
         }
     };
 
@@ -101,7 +105,7 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
         if (reserva.estado === 'cancelada') {
             return { texto: 'Cancelada', clase: 'bg-red-100 text-red-800 border-red-200', icono: '✕' };
         }
-        if (total > 0 && pagado >= total) {
+        if (total > 0 && (total - pagado) <= 0.01) {
             return { texto: 'Pagada', clase: 'bg-green-100 text-green-800 border-green-200', icono: '✓' };
         }
         if (total > 0 && (pagado / total) >= 0.5) {
@@ -116,18 +120,18 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
         return dayjs(r.fecha).isAfter(dayjs().subtract(1, 'day'), 'day'); 
     });
 
-    const handleCancelarCliente = () => {
-        if(!confirm('¿Seguro que deseas cancelar tu reserva?')) return;
-        router.post(route('reservas.cancelar', reservaSeleccionada.id), {}, {
-            onSuccess: () => setReservaSeleccionada(null)
-        });
-    };
-
     const handlePagarModal = () => {
         irAPagar(reservaSeleccionada.id);
     };
 
     const listaFacturas = facturasDisponibles || [];
+
+    // Helper para verificar estado en la tabla
+    const esPagada = (r) => {
+        const total = parseFloat(r.precio_alquiler_total || 0);
+        const pagado = parseFloat(r.monto_comprobante || 0);
+        return (total - pagado) <= 0.01;
+    };
 
     return (
         <AuthenticatedLayout user={auth.user}>
@@ -164,46 +168,63 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        {dataReservas.map((reserva) => (
-                                            <tr key={reserva.id} className="hover:bg-gray-50 transition">
-                                                <td className="px-4 py-4 whitespace-nowrap font-mono text-sm text-indigo-600">#{reserva.id}</td>
-                                                <td className="px-4 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">{reserva.user?.name || 'N/A'}</div>
-                                                    <div className="text-xs text-gray-500">CI: {reserva.user?.cedula || '-'}</div>
-                                                </td>
-                                                <td className="px-4 py-4 whitespace-nowrap">
-                                                    <div className="text-sm text-gray-900">{reserva.cancha?.nombre}</div>
-                                                    <div className="text-xs text-gray-500">{reserva.cancha?.tipo}</div>
-                                                </td>
-                                                <td className="px-4 py-4 whitespace-nowrap">
-                                                    <div className="text-sm text-gray-900">{dayjs(reserva.fecha).format('DD/MM/YYYY')}</div>
-                                                    <div className="text-xs text-gray-500">{reserva.hora_inicio}</div>
-                                                </td>
-                                                <td className="px-4 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-bold text-gray-900">Total: ${reserva.precio_alquiler_total}</div>
-                                                    {parseFloat(reserva.monto_comprobante || 0) > 0 && (
-                                                        <div className="text-xs text-green-600">Abonado: ${reserva.monto_comprobante}</div>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-4 whitespace-nowrap text-center">
-                                                    <EstadoBadge estado={reserva.estado} />
-                                                </td>
-                                                <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    <div className="flex justify-end gap-2">
-                                                        {reserva.estado !== 'pagado' && reserva.estado !== 'cancelado' && (
-                                                            <button onClick={() => irAPagar(reserva.id)} className="text-green-600 hover:text-green-900 border border-green-200 px-2 py-1 rounded bg-green-50 hover:bg-green-100" title="Cobrar">💰</button>
+                                        {dataReservas.map((reserva) => {
+                                            const pagada = esPagada(reserva);
+                                            const estaCancelada = reserva.estado === 'cancelada';
+
+                                            return (
+                                                <tr key={reserva.id} className="hover:bg-gray-50 transition">
+                                                    <td className="px-4 py-4 whitespace-nowrap font-mono text-sm text-indigo-600">#{reserva.id}</td>
+                                                    <td className="px-4 py-4 whitespace-nowrap">
+                                                        <div className="text-sm font-medium text-gray-900">{reserva.user?.name || 'N/A'}</div>
+                                                        <div className="text-xs text-gray-500">CI: {reserva.user?.cedula || '-'}</div>
+                                                    </td>
+                                                    <td className="px-4 py-4 whitespace-nowrap">
+                                                        <div className="text-sm text-gray-900">{reserva.cancha?.nombre}</div>
+                                                        <div className="text-xs text-gray-500">{reserva.cancha?.tipo}</div>
+                                                    </td>
+                                                    <td className="px-4 py-4 whitespace-nowrap">
+                                                        <div className="text-sm text-gray-900">{dayjs(reserva.fecha).format('DD/MM/YYYY')}</div>
+                                                        <div className="text-xs text-gray-500">de {reserva.hora_inicio.substring(0, 5)} a {reserva.hora_fin.substring(0, 5)}</div>
+                                                    </td>
+                                                    <td className="px-4 py-4 whitespace-nowrap">
+                                                        <div className="text-sm font-bold text-gray-900">Total: ${reserva.precio_alquiler_total}</div>
+                                                        {parseFloat(reserva.monto_comprobante || 0) > 0 && (
+                                                            <div className="text-xs text-green-600">Abonado: ${reserva.monto_comprobante}</div>
                                                         )}
-                                                        {/* Verificamos si está pagado o el monto coincide */}
-                                                        {(reserva.estado === 'pagado' || parseFloat(reserva.monto_comprobante) >= parseFloat(reserva.precio_alquiler_total)) && (
-                                                            <button onClick={() => irAImprimir(reserva.id)} className="text-gray-600 hover:text-gray-900 border border-gray-200 px-2 py-1 rounded bg-gray-50 hover:bg-gray-100" title="PDF">🖨️</button>
-                                                        )}
-                                                        {reserva.estado !== 'cancelado' && (
-                                                            <button onClick={() => handleCancelarAdmin(reserva.id)} className="text-red-600 hover:text-red-900 border border-red-200 px-2 py-1 rounded bg-red-50 hover:bg-red-100" title="Cancelar">❌</button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    </td>
+                                                    <td className="px-4 py-4 whitespace-nowrap text-center">
+                                                        <EstadoBadge estado={reserva.estado} />
+                                                    </td>
+                                                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                        <div className="flex justify-end gap-2">
+                                                            
+                                                            {/* LÓGICA ESTRICTA PARA ADMIN */}
+                                                            
+                                                            {/* 1. Botón Cobrar: Solo si NO está pagada Y NO está cancelada */}
+                                                            {!estaCancelada && !pagada && (
+                                                                <button onClick={() => irAPagar(reserva.id)} className="text-green-600 hover:text-green-900 border border-green-200 px-2 py-1 rounded bg-green-50 hover:bg-green-100" title="Cobrar">💰</button>
+                                                            )}
+                                                            
+                                                            {/* 2. Botón PDF: Solo si está pagada Y NO está cancelada */}
+                                                            {!estaCancelada && pagada && (
+                                                                <button onClick={() => irAImprimir(reserva.id)} className="text-gray-600 hover:text-gray-900 border border-gray-200 px-2 py-1 rounded bg-gray-50 hover:bg-gray-100" title="PDF">🖨️</button>
+                                                            )}
+
+                                                            {/* 3. Botón Cancelar: Solo si NO está cancelada */}
+                                                            {!estaCancelada && (
+                                                                <button onClick={() => handleCancelarAdmin(reserva.id)} className="text-red-600 hover:text-red-900 border border-red-200 px-2 py-1 rounded bg-red-50 hover:bg-red-100" title="Cancelar">❌</button>
+                                                            )}
+
+                                                            {/* Si está cancelada, no muestra botones (o puedes mostrar un texto opcional) */}
+                                                            {estaCancelada && (
+                                                                <span className="text-gray-400 text-xs italic">Sin acciones</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -273,9 +294,11 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
                                                     <p className="flex items-center gap-1">{r.fecha}</p>
                                                     <p className="flex items-center gap-1">{r.hora_inicio?.substring(0, 5)} - {r.hora_fin?.substring(0, 5)}</p>
                                                 </div>
-                                                <button onClick={() => irAImprimir(r.id)} className="w-full mt-auto bg-white border border-gray-300 text-indigo-600 text-xs font-bold py-2 px-2 rounded hover:bg-indigo-50 transition text-center flex items-center justify-center gap-2">
-                                                    Descargar PDF
-                                                </button>
+                                                {r.estado !== 'cancelada' && (
+                                                    <button onClick={() => irAImprimir(r.id)} className="w-full mt-auto bg-white border border-gray-300 text-indigo-600 text-xs font-bold py-2 px-2 rounded hover:bg-indigo-50 transition text-center flex items-center justify-center gap-2">
+                                                        Descargar PDF
+                                                    </button>
+                                                )}
                                             </article>
                                         ))}
                                     </div>
@@ -285,7 +308,7 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
                     )}
                 </div>
             </div>
-            <ModalDecision isOpen={!!reservaSeleccionada} reserva={reservaSeleccionada} onClose={() => setReservaSeleccionada(null)} onPagar={handlePagarModal} onCancelar={handleCancelarCliente} />
+            <ModalDecision isOpen={!!reservaSeleccionada} reserva={reservaSeleccionada} onClose={() => setReservaSeleccionada(null)} onPagar={handlePagarModal} />
         </AuthenticatedLayout>
     );
 }
