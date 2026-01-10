@@ -21,16 +21,14 @@ class ReservaController extends Controller
             'fecha_reserva'  => 'required|date|after_or_equal:today',
             'hora_inicio'    => 'required',
             'duracion_horas' => 'required|integer|min:1|max:4',
+            'cliente_id'     => 'nullable|exists:users,id', // <--- Validación nueva para Admin
         ]);
 
         // 2. PREPARACIÓN DE FECHAS Y VARIABLES
-        // Convertimos explícitamente a entero para evitar el error de Carbon
         $duracion = (int) $request->duracion_horas;
         
-        $fecha = Carbon::parse($request->fecha_reserva)->format('Y-m-d');
-        $inicio = Carbon::parse($request->hora_inicio);
-        
-        // Calculamos el fin sumando las horas como entero
+        $fecha = \Carbon\Carbon::parse($request->fecha_reserva)->format('Y-m-d');
+        $inicio = \Carbon\Carbon::parse($request->hora_inicio);
         $fin = $inicio->copy()->addHours($duracion);
 
         $horaInicioStr = $inicio->format('H:i:s');
@@ -40,19 +38,18 @@ class ReservaController extends Controller
         // 3. NUEVA REGLA DE NEGOCIO: CIERRE A LAS 23:00
         // ---------------------------------------------------------
         $horaCierre = 23; 
-        $horaInicioEntera = (int) $inicio->format('H'); // Ej: 22
+        $horaInicioEntera = (int) $inicio->format('H'); 
         
         // Regla A: No se puede reservar a las 23:00 o más tarde
         if ($horaInicioEntera >= $horaCierre) {
-            throw ValidationException::withMessages([
+            throw \Illuminate\Validation\ValidationException::withMessages([
                 'hora_inicio' => 'La cancha cierra a las 23:00. No se admiten reservas a partir de esta hora.'
             ]);
         }
 
         // Regla B: La reserva no puede terminar después de las 23:00
-        // Ej: Inicio 22:00 + 2 horas = 24:00 (Error)
         if (($horaInicioEntera + $duracion) > $horaCierre) {
-            throw ValidationException::withMessages([
+            throw \Illuminate\Validation\ValidationException::withMessages([
                 'duracion_horas' => "No es posible reservar {$duracion} horas porque excedería el horario de cierre (23:00)."
             ]);
         }
@@ -64,26 +61,22 @@ class ReservaController extends Controller
             ->where('fecha', $fecha)
             ->where('estado', '!=', 'cancelada')
             ->where(function ($query) use ($horaInicioStr, $horaFinStr) {
-                // Lógica de solapamiento:
-                // Una reserva nueva choca si empieza antes de que la otra termine
-                // Y termina después de que la otra empiece.
                 $query->where('hora_inicio', '<', $horaFinStr)
                     ->where('hora_fin', '>', $horaInicioStr);
             })
             ->exists();
 
         if ($existeChoque) {
-            // Usamos la clave 'general' para que la caja roja del frontend lo muestre
-            throw ValidationException::withMessages([
+            throw \Illuminate\Validation\ValidationException::withMessages([
                 'general' => 'Lo sentimos, ya existe una reserva confirmada en este rango horario. Por favor revisa el calendario.'
             ]);
         }
 
         // 5. OBTENER DATOS DE LA CANCHA
-        $cancha = Cancha::findOrFail($request->cancha_id);
+        $cancha = \App\Models\Cancha::findOrFail($request->cancha_id);
         
         if ($cancha->estado === 'mantenimiento') {
-                throw ValidationException::withMessages([
+                throw \Illuminate\Validation\ValidationException::withMessages([
                 'general' => 'Esta cancha se encuentra actualmente en mantenimiento.'
             ]);
         }
@@ -92,15 +85,26 @@ class ReservaController extends Controller
         $precioTotal = $cancha->precio_por_hora * $duracion;
 
         // Desglose inverso (Base + Impuesto = Total cerrado)
+        // Nota: Asegúrate de que esta función 'calcularDesglosePrecio' exista en tu controlador
         $desglose = $this->calcularDesglosePrecio($precioTotal, 15); 
         
+        // ---------------------------------------------------------
+        // DETERMINAR EL USUARIO DUEÑO (NUEVA LÓGICA)
+        // ---------------------------------------------------------
+        $userId = auth()->id(); // Por defecto, soy yo
+
+        // Si soy admin y envié un cliente_id, la reserva es para él
+        if (auth()->user()->role === 'admin' && $request->filled('cliente_id')) {
+            $userId = $request->cliente_id;
+        }
+
         // 7. TRANSACCIÓN DE BASE DE DATOS
         try {
             DB::beginTransaction();
 
             // A. Crear la Reserva
             $reserva = Reserva::create([
-                'user_id'               => auth()->id(),
+                'user_id'               => $userId, // <--- ID ASIGNADO
                 'cancha_id'             => $cancha->id,
                 'fecha'                 => $fecha, 
                 'hora_inicio'           => $horaInicioStr,
@@ -113,7 +117,7 @@ class ReservaController extends Controller
             ]);
 
             // B. Crear la Factura
-            $factura = Factura::create([
+            $factura = \App\Models\Factura::create([
                 'reservas_id'   => $reserva->id,
                 'fecha_emision' => now(),
                 'subtotal'      => $desglose['base'],
@@ -130,15 +134,15 @@ class ReservaController extends Controller
 
             return response()->json([
                 'mensaje' => 'Reserva creada',
-                'reserva_id' => $reserva->id // Devolvemos el ID de la nueva reserva
+                'reserva_id' => $reserva->id 
             ], 200);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            // Retornamos error general para que salga en la alerta roja
             return back()->withErrors(['general' => 'Error técnico al guardar: ' . $e->getMessage()]);
         }
     }
+
 
 
     // --- FUNCIONES AUXILIARES ---

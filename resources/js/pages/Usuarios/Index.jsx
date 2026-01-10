@@ -195,19 +195,19 @@ export default function Index({ auth, users, filters }) {
                             <InputError message={errors.email} />
                         </div>
 
-                        {!usuarioEditar && (
                             <div>
-                                <InputLabel value="Contraseña" />
+                                <InputLabel value={usuarioEditar ? "Nueva Contraseña (Dejar vacío para mantener)" : "Contraseña"} />
                                 <TextInput 
                                     type="password"
                                     value={data.password} 
                                     onChange={e => setData('password', e.target.value)} 
                                     className="w-full mt-1" 
+                                    // Si NO estamos editando (es nuevo), es requerido. Si editamos, es opcional.
                                     required={!usuarioEditar} 
+                                    placeholder={usuarioEditar ? "********" : ""}
                                 />
                                 <InputError message={errors.password} />
                             </div>
-                        )}
 
                         <div>
                             <InputLabel value="Rol" />
