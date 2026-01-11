@@ -1,5 +1,6 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Link } from '@inertiajs/react';
+import '../../css/app.css';
 
 export default function Guest({ children }) {
     return (
@@ -28,11 +29,16 @@ export default function Guest({ children }) {
                     
                     {/* Encabezado del Formulario */}
                     <div className="text-center">
-                        <a href="/" className="inline-block mb-6">
-                           {/* Puedes poner tu logo aquí o un texto estilizado */}
-                           <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold mx-auto shadow-lg shadow-indigo-500/30">
-                                L
-                           </div>
+                        <a href="/" className="inline-block mb-6 group">
+                            {/* AQUÍ ESTÁ EL CAMBIO:
+                                1. src apunta a la carpeta public
+                                2. Agregamos 'btn-electric' para el efecto
+                            */}
+                            <img 
+                                src="/images/mascota.png" 
+                                alt="Logo Llaverito" 
+                                className="w-24 h-auto mx-auto hover:scale-110 transition-transform duration-300 btn-electric rounded-full"
+                            />
                         </a>
                         <h2 className="text-3xl font-bold text-slate-900">Bienvenido</h2>
                         <p className="text-slate-500 mt-2">Ingresa tus credenciales para continuar</p>

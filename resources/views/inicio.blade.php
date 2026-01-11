@@ -8,10 +8,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
 
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
     <style>
         body { font-family: 'Inter', sans-serif; }
         
-        /* Animaciones suaves */
+        /* --- ANIMACIONES GLOBALES --- */
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -21,13 +23,14 @@
         .delay-200 { animation-delay: 0.2s; }
         .delay-300 { animation-delay: 0.3s; }
 
-        /* Fondo decorativo sutil (Blobs) */
         .blob {
             position: absolute;
             filter: blur(40px);
             z-index: -1;
             opacity: 0.4;
         }
+
+
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 relative overflow-x-hidden">
@@ -37,7 +40,11 @@
 
     <nav class="w-full py-6 px-6 md:px-12 flex justify-between items-center bg-white/70 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
         <div class="flex items-center gap-2">
-            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">L</div>
+            <img 
+                src="{{ asset('images/mascota.png') }}" 
+                alt="Logo" 
+                class="w-12 h-auto btn-electric rounded-full"
+            >
             <span class="text-xl font-bold tracking-tight text-slate-900">LLAVERITO</span>
         </div>
         <div class="hidden md:flex space-x-8 items-center">
@@ -45,7 +52,7 @@
             <a href="#caracteristicas" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">Servicios</a>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ route('login') }}" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition btn-electric">Ingresar</a>
+            <a href="{{ route('login') }}" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition">Ingresar</a>
             <a href="{{ route('register') }}" class="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30 btn-electric">
                 Crear Cuenta
             </a>
@@ -66,12 +73,12 @@
                 Reserva canchas de fútbol, vóley y tenis en segundos. Gestiona tus pagos, descarga facturas y asegura tu partido sin complicaciones.
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                <a href="{{ route('login') }}" class="px-8 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition shadow-xl hover:-translate-y-1">
-                    Reservar Ahora
-                </a>
-                <a href="#caracteristicas" class="px-8 py-4 bg-white text-slate-700 border border-gray-200 font-bold rounded-xl hover:bg-gray-50 transition hover:-translate-y-1">
-                    Ver Características
-                </a>
+            <a href="{{ route('login') }}" class="btn-electric px-8 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition shadow-xl hover:-translate-y-1">
+                Reservar Ahora
+            </a>
+            <a href="#caracteristicas" class="px-8 py-4 bg-white text-slate-700 border border-gray-200 font-bold rounded-xl hover:bg-gray-50 transition hover:-translate-y-1">
+                Ver Características
+            </a>
             </div>
             
             <div class="mt-12 flex gap-8 justify-center md:justify-start border-t border-gray-200 pt-8">

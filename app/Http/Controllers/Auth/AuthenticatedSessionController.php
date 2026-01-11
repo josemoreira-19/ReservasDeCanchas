@@ -39,7 +39,8 @@ class AuthenticatedSessionController extends Controller
     /**
      * Destroy an authenticated session.
      */
-    public function destroy(Request $request): RedirectResponse
+    // CORRECCIÓN AQUÍ: Le quité el ": RedirectResponse" para que acepte Inertia::location
+    public function destroy(Request $request) 
     {
         Auth::guard('web')->logout();
 
@@ -47,6 +48,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        // Esto fuerza la recarga completa hacia el inicio
+        return Inertia::location('/');
     }
 }

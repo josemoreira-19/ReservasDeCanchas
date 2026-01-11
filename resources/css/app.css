@@ -2,72 +2,98 @@
 @tailwind components;
 @tailwind utilities;
 
-/* === EFECTO DE BOTÓN ELÉCTRICO === */
+/* =========================================
+   ⚡ EFECTO ZAP "REAL" (Amarillo & Celeste) ⚡
+========================================= */
 
-/* Animación de temblor */
-@keyframes zap {
-  0% { transform: scale(1); }
-  25% { transform: scale(1.02) rotate(1deg); }
-  50% { transform: scale(1) rotate(0); }
-  75% { transform: scale(1.02) rotate(-1deg); }
-  100% { transform: scale(1); }
+/* 1. El temblor violento (SE MANTIENE IGUAL) */
+@keyframes super-zap-shake {
+    0%, 100% { transform: translate(0, 0) rotate(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translate(-3px, 2px) rotate(-2deg); }
+    20%, 40%, 60%, 80% { transform: translate(3px, -2px) rotate(2deg); }
 }
 
-/* El Rayo que pasa */
-@keyframes lightning-flash {
-  0% { left: -100%; opacity: 0; }
-  50% { opacity: 1; }
-  100% { left: 200%; opacity: 0; }
+/* 2. El Flash ahora es Blanco -> Amarillo -> Celeste */
+@keyframes lightning-flash-burst {
+    0% { opacity: 0; }
+    10% { opacity: 1; background: white; }        /* Destello cegador */
+    25% { opacity: 0.8; background: #fef08a; }    /* Amarillo claro */
+    50% { opacity: 0.4; background: #67e8f9; }    /* Celeste neón */
+    100% { opacity: 0; }
 }
 
-.btn-electric {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  z-index: 1;
+@keyframes spin-sparks {
+    to { transform: rotate(360deg); }
 }
 
-/* Efecto al pasar el mouse (Hover) */
+@layer components {
+    .btn-electric {
+        @apply relative overflow-visible transition-all duration-100 z-10 inline-flex items-center justify-center border-2 border-transparent;
+    }
+
+    .btn-electric:hover {
+        /* Temblor */
+        animation: super-zap-shake 0.4s linear infinite;
+        
+        /* FONDO: Azul muy oscuro para que resalten los rayos */
+        background-color: #0f172a !important; 
+        color: #fef08a !important; /* Texto amarillo pálido */
+        
+        /* BORDE: Amarillo Eléctrico */
+        border-color: #facc15; 
+        
+        transform: scale(1.05);
+        
+        /* AURA ELÉCTRICA (Mezcla Celeste y Amarillo) */
+        box-shadow: 
+            0 0 10px #fef08a,       /* Centro amarillo */
+            0 0 20px #facc15,       /* Halo amarillo fuerte */
+            0 0 40px #22d3ee,       /* Halo celeste neón */
+            0 0 80px #0ea5e9;       /* Resplandor azul lejano */
+    }
+
+    /* El Flash de luz */
+    .btn-electric::before {
+        content: '';
+        @apply absolute inset-[-4px] bg-transparent opacity-0 z-20 pointer-events-none rounded-[inherit];
+    }
+
+    .btn-electric:hover::before {
+        animation: lightning-flash-burst 0.5s ease-out forwards;
+    }
+
+    /* Las Chispas Giratorias (Ahora Amarillas) */
+    .btn-electric::after {
+        content: '';
+        /* Borde punteado amarillo */
+        @apply absolute inset-[-6px] border-2 border-dashed border-yellow-400 opacity-0 -z-10 rounded-[inherit] transition-opacity duration-100;
+    }
+    
 .btn-electric:hover {
-  animation: zap 0.3s ease-in-out;
-  box-shadow: 0 0 15px rgba(99, 102, 241, 0.6), 0 0 30px rgba(99, 102, 241, 0.4); /* Resplandor Indigo */
-  border-color: #818cf8; /* Borde más claro */
-}
-
-/* El rayo de luz blanco que cruza */
-.btn-electric::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg, 
-    transparent, 
-    rgba(255, 255, 255, 0.8), 
-    transparent
-  );
-  transform: skewX(-25deg);
-  transition: none;
-  z-index: -1;
-}
-
-.btn-electric:hover::before {
-  animation: lightning-flash 0.6s;
-}
-
-/* Partículas/Chispas (Simuladas con sombras en after) */
-.btn-electric::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.8) 10%, transparent 10%);
-    background-size: 20px 20px;
-    opacity: 0;
-    pointer-events: none;
-    z-index: -1;
-}
+        /* Temblor */
+        animation: super-zap-shake 0.4s linear infinite;
+        
+        /* --- CAMBIO PRINCIPAL AQUÍ --- */
+        
+        /* 1. EL FONDO: Ahora es un degradado radial (Luz Cyan en el centro, Azul oscuro afuera) */
+        /* Esto elimina el efecto "negro" y pone luz detrás de la mascota */
+        background: radial-gradient(circle at center, #22d3ee 0%, #1e1b4b 80%) !important;
+        
+        /* Color del texto (para los botones normales) */
+        color: #fef08a !important; 
+        
+        /* Borde amarillo eléctrico */
+        border-color: #facc15; 
+        
+        transform: scale(1.05);
+        
+        /* 2. LAS SOMBRAS (AURA) */
+        box-shadow: 
+            /* Sombra INTERNA (Inset): Mete luz amarilla DENTRO del botón */
+            inset 0 0 20px rgba(250, 204, 21, 0.6), 
+            
+            /* Sombras EXTERNAS (Aura): Celeste y Azul */
+            0 0 15px rgba(254, 240, 138, 0.8), /* Brillo amarillo cercano */
+            0 0 30px rgba(34, 211, 238, 0.8),  /* Halo Celeste neón */
+            0 0 60px rgba(59, 130, 246, 0.6);  /* Resplandor azul lejano */
+    }}
