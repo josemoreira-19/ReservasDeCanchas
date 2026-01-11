@@ -1,35 +1,46 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <title>Factura #{{ $factura->id }}</title>
     <style>
-        body { font-family: sans-serif; font-size: 14px; color: #333; }
-        .header { width: 100%; border-bottom: 2px solid #ddd; padding-bottom: 20px; margin-bottom: 20px; }
-        .logo { font-size: 24px; font-weight: bold; color: #2563eb; }
-        .info-empresa { text-align: right; float: right; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.4; }
         
-        .details-box { width: 100%; margin-bottom: 30px; }
-        .details-left { float: left; width: 50%; }
-        .details-right { float: right; width: 40%; text-align: right; }
+        /* --- TU ENCABEZADO PERSONALIZADO --- */
+        .header { width: 100%; border-bottom: 2px solid #4F46E5; padding-bottom: 20px; margin-bottom: 30px; }
+        .info-empresa { float: left; width: 60%; font-size: 14px; }
+        .logo { float: right; width: 35%; text-align: right; font-weight: bold; color: #4F46E5; font-size: 18px; padding-top: 10px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { background-color: #f8fafc; border-bottom: 2px solid #e2e8f0; padding: 10px; text-align: left; font-weight: bold; }
-        td { border-bottom: 1px solid #eee; padding: 10px; }
+        /* Limpiar flotados para que no se monten las capas */
+        .clearfix:after { content: ""; display: table; clear: both; }
+
+        /* --- RESTO DEL DISEÑO --- */
+        .info-box { width: 100%; margin-bottom: 20px; clear: both; }
+        .info-box td { vertical-align: top; width: 50%; }
         
-        .totals { width: 100%; margin-top: 30px; text-align: right; }
-        .totals-row { margin-bottom: 5px; }
-        .total-final { font-size: 18px; font-weight: bold; color: #2563eb; }
+        .details-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .details-table th { background: #f3f4f6; padding: 10px; text-align: left; border-bottom: 1px solid #ccc; font-size: 12px; text-transform: uppercase; }
+        .details-table td { padding: 10px; border-bottom: 1px solid #eee; }
         
-        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 10px; color: #777; border-top: 1px solid #ddd; padding-top: 10px; }
-        .clearfix::after { content: ""; clear: both; display: table; }
+        .totals { margin-top: 20px; text-align: right; }
+        .totals table { margin-left: auto; width: 40%; }
+        .totals td { padding: 5px; }
+        .totals .grand-total { font-size: 16px; font-weight: bold; color: #4F46E5; border-top: 1px solid #ccc; padding-top: 5px; }
+        
+        .status { text-align: center; margin-top: 50px; font-size: 12px; color: #666; border-top: 1px dashed #ccc; padding-top: 10px; }
+        
+        .sello {
+            position: absolute; top: 180px; right: 60px; border: 3px solid #10B981; 
+            color: #10B981; padding: 10px 20px; font-size: 20px; font-weight: bold; 
+            transform: rotate(-15deg); opacity: 0.8; border-radius: 10px; z-index: -1;
+        }
     </style>
 </head>
 <body>
 
     <div class="header clearfix">
         <div class="info-empresa">
-            <strong>Canchas Llaverito</strong><br>
+            <strong style="font-size: 18px;">Canchas Llaverito</strong><br>
             RUC: 123456789001<br>
             Chone, Manabí<br>
             Tel: 099-999-9999
@@ -39,47 +50,77 @@
         </div>
     </div>
 
-    <div class="details-box clearfix">
-        <div class="details-left">
-            <strong>Cliente:</strong><br>
-            {{ $reserva->user->name }}<br>
-            Email: {{ $reserva->user->email }}
-        </div>
-        <div class="details-right">
-            <strong>Factura Nro:</strong> #{{ str_pad($factura->id, 6, '0', STR_PAD_LEFT) }}<br>
-            <strong>Fecha:</strong> {{ $factura->fecha_emision }}<br>
-            <strong>Método:</strong> {{ ucfirst($factura->metodo) }}
-        </div>
-    </div>
+    @if($factura->pago == 'pagado')
+        <div class="sello">PAGADO</div>
+    @endif
 
-    <h3>Detalle del Servicio</h3>
-    <table>
+    <table class="info-box">
+        <tr>
+            <td>
+                <strong style="color: #4F46E5; text-transform: uppercase;">Cliente</strong><br>
+                <strong>Nombre:</strong> {{ $reserva->user->name }}<br>
+                {{-- AQUÍ ESTÁ LA CÉDULA QUE PEDISTE --}}
+                <strong>Cédula/RUC:</strong> {{ $reserva->user->cedula ?? 'Consumidor Final' }}<br>
+                <strong>Email:</strong> {{ $reserva->user->email }}
+            </td>
+            <td style="text-align: right;">
+                <strong style="color: #4F46E5; text-transform: uppercase;">Detalles</strong><br>
+                <strong>Nº Factura:</strong> {{ str_pad($factura->id, 6, '0', STR_PAD_LEFT) }}<br>
+                <strong>Fecha Emisión:</strong> {{ $factura->fecha_emision }}<br>
+                <strong>Estado:</strong> {{ strtoupper($factura->pago) }}
+            </td>
+        </tr>
+    </table>
+
+    <table class="details-table">
         <thead>
             <tr>
-                <th>Descripción</th>
-                <th>Fecha Reserva</th>
-                <th>Horario</th>
-                <th>Subtotal</th>
+                <th style="width: 50%;">Descripción</th>
+                <th style="text-align: center;">Horas</th>
+                <th style="text-align: right;">Precio Unit.</th>
+                <th style="text-align: right;">Total</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td>Alquiler: {{ $reserva->cancha->nombre }}</td>
-                <td>{{ $reserva->fecha }}</td>
-                <td>{{ substr($reserva->hora_inicio, 0, 5) }} - {{ substr($reserva->hora_fin, 0, 5) }}</td>
-                <td>${{ $factura->subtotal }}</td>
+                <td>
+                    <strong>Alquiler: {{ $reserva->cancha->nombre }}</strong><br>
+                    <span style="font-size: 12px; color: #666;">
+                        {{ ucfirst($reserva->cancha->tipo) }} | {{ $reserva->fecha }}<br>
+                        Horario: {{ substr($reserva->hora_inicio, 0, 5) }} - {{ substr($reserva->hora_fin, 0, 5) }}
+                    </span>
+                </td>
+                <td style="text-align: center;">{{ $reserva->duracion_horas }}</td>
+                <td style="text-align: right;">$ {{ number_format($reserva->cancha->precio_por_hora, 2) }}</td>
+                <td style="text-align: right;">$ {{ number_format($reserva->precio_alquiler_total, 2) }}</td>
             </tr>
         </tbody>
     </table>
 
     <div class="totals">
-        <div class="totals-row">Subtotal: ${{ $factura->subtotal }}</div>
-        <div class="totals-row">IVA (15%): ${{ $factura->impuestos }}</div>
-        <div class="totals-row total-final">Total Pagado: ${{ $factura->total }}</div>
+        <table>
+            <tr>
+                <td>Subtotal:</td>
+                <td style="text-align: right;">$ {{ $factura->subtotal }}</td>
+            </tr>
+            <tr>
+                <td>IVA (15%):</td>
+                <td style="text-align: right;">$ {{ $factura->impuestos }}</td>
+            </tr>
+            <tr>
+                <td class="grand-total">TOTAL A PAGAR:</td>
+                <td class="grand-total" style="text-align: right;">$ {{ $factura->total }}</td>
+            </tr>
+            <!-- <tr>
+                <td>Monto Abonado:</td>
+                <td style="text-align: right; color: green;">$ {{ $reserva->monto_comprobante }}</td>
+            </tr> -->
+        </table>
     </div>
 
-    <div class="footer">
-        Gracias por preferir Canchas Llaverito. Documento generado automáticamente.
+    <div class="status">
+        Gracias por su preferencia. ¡Disfrute su partido!<br>
+        Documento generado electrónicamente.
     </div>
 
 </body>

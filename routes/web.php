@@ -7,6 +7,7 @@ use App\Http\Controllers\CanchaController;
 use App\Http\Controllers\ReservaController;
 use App\Http\Controllers\FacturaController;
 use Inertia\Inertia;
+use App\Http\Controllers\UserController;
 
 // Route::get('/', function () {
 //     return Inertia::render('Welcome', [
@@ -38,10 +39,12 @@ Route::middleware('auth')->group(function () {
 
 
 // ================ver el historial de reservas y facturas del usuario =================
-Route::get('/mis-reservas', [ReservaController::class, 'misReservas'])->name('reservas.mis-reservas');
-Route::post('/reservas/{reserva}/cancelar', [ReservaController::class, 'cancelar'])->name('reservas.cancelar');
-Route::post('/facturas/{reserva}/procesar', [FacturaController::class, 'procesar'])->name('facturas.procesar');
-Route::get('/reservas/{reserva}/pdf', [FacturaController::class, 'descargarPDF']) ->name('facturas.pdf');
+    Route::get('/mis-reservas', [ReservaController::class, 'misReservas'])->name('reservas.mis-reservas');
+    Route::post('/reservas/{reserva}/cancelar', [ReservaController::class, 'cancelar'])->name('reservas.cancelar');
+    Route::post('/facturas/{reserva}/procesar', [FacturaController::class, 'procesar'])->name('facturas.procesar');
+    Route::post('/reservas/{reserva}/cancelar-abandono', [ReservaController::class, 'cancelarPorAbandono']) ->name('reservas.cancelar-abandono');
+    Route::get('/reservas/{reserva}/pdf', [FacturaController::class, 'descargarPDF'])->name('facturas.pdf');
+
 
     // =============== rutas de Canchas =================
     Route::get('/canchas', [CanchaController::class, 'index'])->name('canchas.index');
@@ -53,6 +56,17 @@ Route::get('/reservas/{reserva}/pdf', [FacturaController::class, 'descargarPDF']
         Route::post('/canchas', [CanchaController::class, 'store'])->name('canchas.store');
         Route::put('/canchas/{cancha}', [CanchaController::class, 'update'])->name('canchas.update');
         Route::delete('/canchas/{cancha}', [CanchaController::class, 'destroy'])->name('canchas.destroy');
+    });
+
+    Route::middleware(['auth', 'can:isAdmin'])->group(function () {
+        // Rutas de Usuarios (CRUD completo)
+        Route::resource('usuarios', UserController::class)->except(['create', 'show', 'edit']);
+
+        Route::post('/canchas', [CanchaController::class, 'store'])->name('canchas.store');
+        Route::put('/canchas/{cancha}', [CanchaController::class, 'update'])->name('canchas.update');
+        Route::delete('/canchas/{cancha}', [CanchaController::class, 'destroy'])->name('canchas.destroy');
+
+        Route::get('/api/usuarios/buscar', [UserController::class, 'apiBuscar'])->name('api.usuarios.buscar');
     });
 
 

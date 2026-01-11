@@ -20,8 +20,10 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'cedula',    
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -53,5 +55,10 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function reservations()
+    {
+        return $this->hasMany(Reserva::class, 'user_id');
     }
 }

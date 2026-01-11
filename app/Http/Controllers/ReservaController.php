@@ -5,162 +5,210 @@ namespace App\Http\Controllers;
 use App\Models\Cancha;
 use App\Models\Factura;
 use App\Models\Reserva;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class ReservaController extends Controller
 {
+    // =============================================================
+    // 1. LISTAR RESERVAS (Lógica Unificada Admin/Cliente)
+    // =============================================================
+    public function index(Request $request)
+        {
+            $user = auth()->user();
+            $search = $request->input('search');
+
+            // Determinamos si es Admin
+            $esAdmin = $user->role === 'admin';
+
+            if ($esAdmin) {
+                // --- LÓGICA PARA ADMIN ---
+                $reservas = Reserva::query()
+                    ->with(['user', 'cancha']) 
+                    ->when($search, function ($query, $search) {
+                        $query->where('id', 'like', "%{$search}%")
+                            ->orWhereHas('user', function ($q) use ($search) {
+                                $q->where('name', 'like', "%{$search}%")
+                                    ->orWhere('cedula', 'like', "%{$search}%");
+                            });
+                    })
+                    ->orderBy('fecha', 'desc') 
+                    ->orderBy('hora_inicio', 'desc')
+                    ->paginate(10)
+                    ->withQueryString();
+
+                // CAMBIO AQUÍ: 'Reservas/MisReservas' en lugar de 'Reservas/Index'
+                return Inertia::render('Reservas/MisReservas', [ 
+                    'reservas' => $reservas,
+                    'filters' => $request->only(['search']),
+                    'isAdmin' => true, 
+                    'facturasDisponibles' => [], 
+                ]);
+
+            } else {
+                // --- LÓGICA PARA CLIENTE ---
+                
+                $reservas = Reserva::with(['cancha', 'factura'])
+                    ->where('user_id', $user->id)
+                    ->orderBy('fecha', 'desc')
+                    ->orderBy('hora_inicio', 'desc')
+                    ->paginate(10);
+
+                $todas = Reserva::with(['cancha', 'factura'])
+                    ->where('user_id', $user->id)
+                    ->get();
+
+                $facturasDisponibles = $todas->filter(function ($r) {
+                    $total = (float) $r->precio_alquiler_total;
+                    $pagado = (float) $r->monto_comprobante;
+                    if ($total <= 0) return false;
+                    return ($total - $pagado) <= 0.01;
+                })->values();
+
+                // CAMBIO AQUÍ TAMBIÉN
+                return Inertia::render('Reservas/MisReservas', [
+                    'reservas' => $reservas,
+                    'isAdmin' => false, 
+                    'facturasDisponibles' => $facturasDisponibles,
+                ]);
+            }
+        }
+
+    public function misReservas(Request $request)
+    {
+        return $this->index($request);
+    }
+
+    // =============================================================
+    // 2. CREAR RESERVA
+    // =============================================================
     public function store(Request $request)
     {
-        // 1. VALIDACIÓN BÁSICA DE DATOS
         $request->validate([
             'cancha_id'      => 'required|exists:canchas,id',
             'fecha_reserva'  => 'required|date|after_or_equal:today',
             'hora_inicio'    => 'required',
             'duracion_horas' => 'required|integer|min:1|max:4',
+            'cliente_id'     => 'nullable|exists:users,id',
         ]);
 
-        // 2. PREPARACIÓN DE FECHAS Y VARIABLES
-        // Convertimos explícitamente a entero para evitar el error de Carbon
         $duracion = (int) $request->duracion_horas;
-        
         $fecha = Carbon::parse($request->fecha_reserva)->format('Y-m-d');
         $inicio = Carbon::parse($request->hora_inicio);
-        
-        // Calculamos el fin sumando las horas como entero
         $fin = $inicio->copy()->addHours($duracion);
 
         $horaInicioStr = $inicio->format('H:i:s');
         $horaFinStr = $fin->format('H:i:s');
 
-        // ---------------------------------------------------------
-        // 3. NUEVA REGLA DE NEGOCIO: CIERRE A LAS 23:00
-        // ---------------------------------------------------------
-        $horaCierre = 23; 
-        $horaInicioEntera = (int) $inicio->format('H'); // Ej: 22
-        
-        // Regla A: No se puede reservar a las 23:00 o más tarde
-        if ($horaInicioEntera >= $horaCierre) {
-            throw ValidationException::withMessages([
-                'hora_inicio' => 'La cancha cierra a las 23:00. No se admiten reservas a partir de esta hora.'
+        // Regla: Cierre a las 23:00
+        if ($inicio->hour >= 23 || ($inicio->hour + $duracion) > 23) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'hora_inicio' => 'La cancha cierra a las 23:00.'
             ]);
         }
 
-        // Regla B: La reserva no puede terminar después de las 23:00
-        // Ej: Inicio 22:00 + 2 horas = 24:00 (Error)
-        if (($horaInicioEntera + $duracion) > $horaCierre) {
-            throw ValidationException::withMessages([
-                'duracion_horas' => "No es posible reservar {$duracion} horas porque excedería el horario de cierre (23:00)."
-            ]);
-        }
-
-        // ---------------------------------------------------------
-        // 4. VALIDACIÓN DE DISPONIBILIDAD (Evitar Choques)
-        // ---------------------------------------------------------
-        $existeChoque = Reserva::where('cancha_id', $request->cancha_id)
+        // Validación Choques
+        $choque = Reserva::where('cancha_id', $request->cancha_id)
             ->where('fecha', $fecha)
             ->where('estado', '!=', 'cancelada')
-            ->where(function ($query) use ($horaInicioStr, $horaFinStr) {
-                // Lógica de solapamiento:
-                // Una reserva nueva choca si empieza antes de que la otra termine
-                // Y termina después de que la otra empiece.
-                $query->where('hora_inicio', '<', $horaFinStr)
-                    ->where('hora_fin', '>', $horaInicioStr);
-            })
-            ->exists();
+            ->where(function ($q) use ($horaInicioStr, $horaFinStr) {
+                $q->where('hora_inicio', '<', $horaFinStr)
+                  ->where('hora_fin', '>', $horaInicioStr);
+            })->exists();
 
-        if ($existeChoque) {
-            // Usamos la clave 'general' para que la caja roja del frontend lo muestre
-            throw ValidationException::withMessages([
-                'general' => 'Lo sentimos, ya existe una reserva confirmada en este rango horario. Por favor revisa el calendario.'
-            ]);
+        if ($choque) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['general' => 'Ya existe una reserva en ese horario.']);
         }
 
-        // 5. OBTENER DATOS DE LA CANCHA
         $cancha = Cancha::findOrFail($request->cancha_id);
         
         if ($cancha->estado === 'mantenimiento') {
-                throw ValidationException::withMessages([
-                'general' => 'Esta cancha se encuentra actualmente en mantenimiento.'
-            ]);
+             throw \Illuminate\Validation\ValidationException::withMessages(['general' => 'Cancha en mantenimiento.']);
         }
 
-        // 6. CÁLCULO DE PRECIOS
         $precioTotal = $cancha->precio_por_hora * $duracion;
-
-        // Desglose inverso (Base + Impuesto = Total cerrado)
-        $desglose = $this->calcularDesglosePrecio($precioTotal, 15); 
+        $desglose = $this->calcularDesglosePrecio($precioTotal, 15);
         
-        // 7. TRANSACCIÓN DE BASE DE DATOS
+        // Asignar Dueño
+        $userId = auth()->id();
+        if (auth()->user()->role === 'admin' && $request->filled('cliente_id')) {
+            $userId = $request->cliente_id;
+        }
+
         try {
             DB::beginTransaction();
 
-            // A. Crear la Reserva
             $reserva = Reserva::create([
-                'user_id'               => auth()->id(),
-                'cancha_id'             => $cancha->id,
-                'fecha'                 => $fecha, 
-                'hora_inicio'           => $horaInicioStr,
-                'hora_fin'              => $horaFinStr,
-                'duracion_horas'        => $duracion,
+                'user_id' => $userId,
+                'cancha_id' => $cancha->id,
+                'fecha' => $fecha,
+                'hora_inicio' => $horaInicioStr,
+                'hora_fin' => $horaFinStr,
+                'duracion_horas' => $duracion,
                 'precio_alquiler_total' => $precioTotal,
-                'monto_comprobante'     => 0,
-                'estado'                => 'pendiente',
-                'facturas_id'           => null,
+                'monto_comprobante' => 0,
+                'estado' => 'pendiente',
             ]);
 
-            // B. Crear la Factura
             $factura = Factura::create([
-                'reservas_id'   => $reserva->id,
+                'reservas_id' => $reserva->id,
                 'fecha_emision' => now(),
-                'subtotal'      => $desglose['base'],
-                'impuestos'     => $desglose['impuesto'],
-                'total'         => $precioTotal,
-                'metodo'        => 'efectivo',
-                'pago'          => 'pendiente',
+                'subtotal' => $desglose['base'],
+                'impuestos' => $desglose['impuesto'],
+                'total' => $precioTotal,
+                'metodo' => 'efectivo',
+                'pago' => 'pendiente',
             ]);
 
-            // C. Vincular Factura a Reserva
             $reserva->update(['facturas_id' => $factura->id]);
 
             DB::commit();
-
-            return response()->json([
-                'mensaje' => 'Reserva creada',
-                'reserva_id' => $reserva->id // Devolvemos el ID de la nueva reserva
-            ], 200);
+            return response()->json(['mensaje' => 'Reserva creada', 'reserva_id' => $reserva->id], 200);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            // Retornamos error general para que salga en la alerta roja
-            return back()->withErrors(['general' => 'Error técnico al guardar: ' . $e->getMessage()]);
+            return back()->withErrors(['general' => 'Error: ' . $e->getMessage()]);
         }
     }
 
-    // --- FUNCIONES AUXILIARES ---
+    // =============================================================
+    // 3. ELIMINAR / CANCELAR
+    // =============================================================
+    public function cancelar(Reserva $reserva)
+        {
+            $user = auth()->user();
 
+            // Seguridad: Solo Admin o el Dueño pueden cancelar
+            if ($user->role !== 'admin' && $user->id !== $reserva->user_id) {
+                abort(403, 'No tienes permiso para cancelar esta reserva.');
+            }
+
+            // Actualizamos estado
+            $reserva->update(['estado' => 'cancelada']);
+            
+            // Si tenía factura pendiente, la anulamos o marcamos (opcional)
+            // if ($reserva->factura) $reserva->factura->delete();
+
+            return back()->with('success', 'Reserva cancelada correctamente.');
+        }
+
+    // =============================================================
+    // FUNCIONES AUXILIARES
+    // =============================================================
     public function calcularDesglosePrecio($precioTotal, $porcentajeImpuesto = 15)
     {
         $factor = 1 + ($porcentajeImpuesto / 100);
         $precioBase = round($precioTotal / $factor, 2);
         $montoImpuesto = round($precioTotal - $precioBase, 2);
-
-        return [
-            'base'     => $precioBase,
-            'impuesto' => $montoImpuesto,
-            'total'    => $precioTotal
-        ];
+        return ['base' => $precioBase, 'impuesto' => $montoImpuesto, 'total' => $precioTotal];
     }
 
     public function consultarDisponibilidad(Request $request, Cancha $cancha)
     {
-        $fechaInicio = $request->query('fecha_inicio') 
-            ? Carbon::parse($request->query('fecha_inicio')) 
-            : Carbon::now()->startOfWeek();
-
+        $fechaInicio = $request->query('fecha_inicio') ? Carbon::parse($request->query('fecha_inicio')) : Carbon::now()->startOfWeek();
         $fechaFin = $fechaInicio->copy()->endOfWeek();
 
         $reservas = Reserva::where('cancha_id', $cancha->id)
@@ -168,55 +216,6 @@ class ReservaController extends Controller
             ->whereBetween('fecha', [$fechaInicio->format('Y-m-d'), $fechaFin->format('Y-m-d')])
             ->get(['fecha', 'hora_inicio', 'hora_fin', 'duracion_horas']);
 
-        return response()->json([
-            'reservas' => $reservas,
-            'inicio_semana' => $fechaInicio->format('Y-m-d'),
-            'fin_semana' => $fechaFin->format('Y-m-d')
-        ]);
+        return response()->json(['reservas' => $reservas]);
     }
-
-
-    public function misReservas()
-    {
-        $userId = auth()->id();
-
-        $todasLasReservas = Reserva::with(['cancha', 'factura'])
-            ->where('user_id', $userId)
-            ->orderByDesc('fecha')
-            ->orderByDesc('hora_inicio')
-            ->get();
-
-        // NUEVA REGLA: Solo pasan a "Facturas" si se pagó el 100% (o más por si acaso)
-        $reservasFacturables = $todasLasReservas->filter(function ($reserva) {
-            if ($reserva->precio_alquiler_total <= 0) return false;
-            
-            // Calculamos saldo restante
-            $saldoPendiente = $reserva->precio_alquiler_total - $reserva->monto_comprobante;
-
-            // Si el saldo es 0 (o menos, por errores de decimales), está pagada
-            return $saldoPendiente <= 0.01; 
-        });
-
-        return Inertia::render('Reservas/MisReservas', [
-            'reservas' => $todasLasReservas,
-            'facturasDisponibles' => $reservasFacturables->values()
-        ]);
-    }
-
-    // NUEVA FUNCIÓN PARA CANCELAR
-    public function cancelar(Reserva $reserva)
-    {
-        // Seguridad: Solo el dueño puede cancelar
-        if (auth()->id() !== $reserva->user_id) {
-            abort(403);
-        }
-
-        // Opcional: Validar que no cancele una reserva que ya pasó
-        // if (Carbon::parse($reserva->fecha)->isPast()) { ... error ... }
-
-        $reserva->update(['estado' => 'cancelada']);
-
-        return back()->with('success', 'Reserva cancelada correctamente.');
-    }
-
 }

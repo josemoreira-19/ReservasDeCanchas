@@ -13,61 +13,54 @@ class CanchaController extends Controller
      * Sirve tanto para Admin como para Cliente.
      */
 public function index()
-{
-    $canchas = Cancha::all();
+    {
+        $canchas = Cancha::all(); // O Cancha::where('estado', 'activa')->get() para clientes
 
-    // Esto busca el archivo resources/js/Pages/Canchas/Index.jsx
-    return Inertia::render('Canchas/Index', [
-        'canchas' => $canchas,
-        'auth' => [
-            'user' => auth()->user(), // Para saber en React si es admin o cliente
-        ]
-    ]);
-}
-    /**
-     * Guarda una nueva cancha (Solo Admin).
-     */
+        return Inertia::render('Canchas/Index', [
+            'canchas' => $canchas,
+            // Pasamos un prop extra para saber si es admin desde React facilito
+            'isAdmin' => auth()->check() && auth()->user()->role === 'admin'
+        ]);
+    }
+
+    // GUARDAR (Solo Admin)
     public function store(Request $request)
     {
-        // 1. VALIDACIÓN: Revisamos que los datos cumplan con tu SQL
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'tipo' => 'required|in:futbol,voley,basked,indor,tenis', // Coincide con tu ENUM
+        $request->validate([
+            'nombre' => 'required|string|max:50',
+            'tipo' => 'required|string|max:50',
             'precio_por_hora' => 'required|numeric|min:0',
-            'estado' => 'required|in:disponible,ocupada,mantenimiento'
         ]);
 
-        // 2. CREACIÓN: Si pasa la validación, se guarda en la DB
-        Cancha::create($validated);
+        Cancha::create($request->all());
 
-        // 3. RESPUESTA: Redirecciona con un mensaje de éxito
-        return redirect()->route('canchas.index')->with('message', 'Cancha creada con éxito');
+        return redirect()->back()->with('success', 'Cancha creada correctamente.');
     }
 
-    /**
-     * Actualiza la información de una cancha (Solo Admin).
-     */
+    // ACTUALIZAR (Solo Admin)
     public function update(Request $request, Cancha $cancha)
     {
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'tipo' => 'required|in:futbol,voley,basked,indor,tenis',
+        $request->validate([
+            'nombre' => 'required|string|max:50',
+            'tipo' => 'required|string|max:50',
             'precio_por_hora' => 'required|numeric|min:0',
-            'estado' => 'required|in:disponible,ocupada,mantenimiento'
         ]);
 
-        $cancha->update($validated);
+        $cancha->update($request->all());
 
-        return redirect()->route('canchas.index');
+        return redirect()->back()->with('success', 'Cancha actualizada.');
     }
 
-    /**
-     * Elimina una cancha (Solo Admin).
-     */
+    // ELIMINAR (Solo Admin)
     public function destroy(Cancha $cancha)
     {
-        $cancha->delete();
+        // Validación de seguridad: No borrar si tiene reservas futuras
+        if ($cancha->reservas()->where('fecha', '>=', now()->toDateString())->exists()) {
+            return back()->with('error', 'No puedes eliminar esta cancha porque tiene reservas pendientes.');
+        }
 
-        return redirect()->route('canchas.index')->with('message', 'Cancha eliminada');
+        $cancha->delete();
+        return back()->with('success', 'Cancha eliminada.');
     }
+
 }

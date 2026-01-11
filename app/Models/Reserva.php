@@ -28,11 +28,11 @@ class Reserva extends Model
 
     public function user()
     {
-        return $this->belongsTo(user::class);
+        return $this->belongsTo(User::class);
     }
     public function cancha()
     {
-        return $this->belongsTo(cancha::class);
+        return $this->belongsTo(Cancha::class);
     }   
 
     // public function factura()

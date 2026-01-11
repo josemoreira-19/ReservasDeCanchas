@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios'; 
+import Modal from './Modal';    
+import { usePage } from '@inertiajs/react';
+import BuscadorCliente from '@/Components/BuscadorCliente'; 
 
 export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initialData }) {
+    const { auth } = usePage().props; 
+    const isAdmin = auth.user.role === 'admin';
+
     // Estados del formulario
     const [formData, setFormData] = useState({
         fecha_reserva: '',
         hora_inicio: '',
         duracion_horas: 1, 
+        cliente_id: '', 
     });
 
     const [loading, setLoading] = useState(false);
@@ -21,14 +28,15 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
         }
     }, [formData.duracion_horas, cancha]);
     
-    // 2. AUTO-RELLENAR DATOS DESDE EL CALENDARIO
+    // 2. AUTO-RELLENAR DATOS
     useEffect(() => {
         if (initialData) {
             setErrors({});
             setFormData(prev => ({
                 ...prev,
-                fecha_reserva: initialData.fecha, // Ej: "2025-12-27"
-                hora_inicio: initialData.hora     // Ej: "14:00"
+                fecha_reserva: initialData.fecha, 
+                hora_inicio: initialData.hora,
+                cliente_id: '', // Resetear al abrir
             }));
         }
     }, [initialData]);
@@ -39,8 +47,27 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    // --- NUEVA FUNCIÓN: RESERVAR PARA MÍ MISMO ---
+    const reservarParaMi = () => {
+        setFormData(prev => ({ ...prev, cliente_id: auth.user.id }));
+        setErrors(prev => ({ ...prev, cliente_id: null })); // Limpiamos el error si existía
+    };
+
+    const limpiarCliente = () => {
+        setFormData(prev => ({ ...prev, cliente_id: '' }));
+    };
+    // ---------------------------------------------
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // La validación se mantiene igual, porque ahora si eliges "Para mí", 
+        // el cliente_id tendrá TU ID, así que pasará esta validación.
+        if (isAdmin && !formData.cliente_id) {
+            setErrors({ cliente_id: '⚠️ Debes seleccionar un cliente o elegir "Reservar a mi nombre".' });
+            return; 
+        }
+
         setLoading(true);
         setErrors({});
 
@@ -49,18 +76,17 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
                 cancha_id: cancha.id,
                 fecha_reserva: formData.fecha_reserva,
                 hora_inicio: formData.hora_inicio,
-                duracion_horas: formData.duracion_horas
+                duracion_horas: formData.duracion_horas,
+                cliente_id: formData.cliente_id 
             });
 
             onSuccess(response.data.reserva_id);
             onClose(); 
 
         } catch (error) {
-// Manejo de errores (Validación 422 o Servidor 500)
             if (error.response && error.response.status === 422) {
                 setErrors(error.response.data.errors);
             } else if (error.response && error.response.data && error.response.data.general) {
-                 // Para capturar el error 'general' que creamos en el controlador
                 setErrors({ general: error.response.data.general });
             } else {
                 alert('Ocurrió un error inesperado.');
@@ -83,36 +109,78 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
 
                 {/* Info de la Cancha */}
                 <div className="bg-blue-50 p-3 rounded-md mb-4 text-sm text-blue-800 border border-blue-100">
-                    Estás reservando: <strong>{cancha?.nombre}</strong>
-                    <br />
+                    Estás reservando: <strong>{cancha?.nombre}</strong><br />
                     Precio por hora: <strong>${cancha?.precio_por_hora}</strong>
                 </div>
 
-                {/* CAJA DE ERRORES GENERALES */}
-                {(errors.hora_inicio || errors.duracion_horas || errors.general) && (
-                    <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative animate-pulse">
+                {/* CAJA DE ERRORES */}
+                {(errors.hora_inicio || errors.duracion_horas || errors.general || errors.cliente_id) && (
+                    <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative animate-pulse text-sm">
                         <strong className="font-bold">¡Atención! </strong>
                         <span className="block sm:inline">
-                            {/* Aquí mostramos el mensaje dinámico que manda Laravel, NO un texto fijo */}
-                            {errors.general || errors.hora_inicio || errors.duracion_horas}
+                            {errors.general || errors.hora_inicio || errors.duracion_horas || errors.cliente_id}
                         </span>
                     </div>
                 )}
                 
-<form onSubmit={handleSubmit}></form>
                 <form onSubmit={handleSubmit}>
                     
-                    {/* SECCIÓN DE DATOS FIJOS (SOLO LECTURA) */}
+                    {/* === ZONA ADMIN: SELECCIÓN DE CLIENTE === */}
+                    {isAdmin && (
+                        <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mb-4">
+                            <h3 className="text-xs font-bold text-indigo-800 uppercase mb-2">👤 ¿Para quién es la reserva?</h3>
+                            
+                            {/* 1. BUSCADOR (Si no hay cliente seleccionado o si queremos cambiar) */}
+                            {!formData.cliente_id && (
+                                <>
+                                    <BuscadorCliente 
+                                        onSeleccionar={(usuario) => setFormData(prev => ({...prev, cliente_id: usuario.id}))} 
+                                    />
+                                    
+                                    <div className="mt-3 text-center border-t border-indigo-200 pt-2">
+                                        <span className="text-xs text-indigo-600 mr-2">¿Es para ti?</span>
+                                        <button 
+                                            type="button"
+                                            onClick={reservarParaMi}
+                                            className="text-xs bg-white border border-indigo-300 px-2 py-1 rounded text-indigo-700 font-bold hover:bg-indigo-100 transition"
+                                        >
+                                            Reservar a mi nombre
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* 2. CLIENTE SELECCIONADO (Feedback visual) */}
+                            {formData.cliente_id && (
+                                <div className="mt-2 flex justify-between items-center bg-green-100 p-2 rounded border border-green-300">
+                                    <span className="text-sm text-green-800 font-bold">
+                                        {formData.cliente_id === auth.user.id 
+                                            ? '✓ A tu nombre (Admin)' 
+                                            : `✓ Cliente ID: ${formData.cliente_id}`
+                                        }
+                                    </span>
+                                    <button 
+                                        type="button" 
+                                        onClick={limpiarCliente}
+                                        className="text-xs text-red-600 hover:text-red-800 underline ml-2"
+                                    >
+                                        Cambiar
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {/* ======================================== */}
+
+                    {/* SECCIÓN DE DATOS FIJOS */}
                     <div className="grid grid-cols-2 gap-4 mb-4">
-                        {/* Fecha Fija */}
                         <div>
-                            <label className="block text-gray-500 text-xs font-bold mb-1 uppercase">Fecha Seleccionada</label>
+                            <label className="block text-gray-500 text-xs font-bold mb-1 uppercase">Fecha</label>
                             <div className="w-full bg-gray-100 border border-gray-300 text-gray-600 rounded px-3 py-2 font-medium">
                                 {formData.fecha_reserva}
                             </div>
                         </div>
 
-                        {/* Hora Fija */}
                         <div>
                             <label className="block text-gray-500 text-xs font-bold mb-1 uppercase">Hora Inicio</label>
                             <div className="w-full bg-gray-100 border border-gray-300 text-gray-600 rounded px-3 py-2 font-medium">
@@ -121,11 +189,9 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
                         </div>
                     </div>
 
-                    {/* SECCIÓN EDITABLE (SOLO DURACIÓN) */}
+                    {/* SECCIÓN EDITABLE (DURACIÓN) */}
                     <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2">
-                            ¿Cuántas horas vas a jugar?
-                        </label>
+                        <label className="block text-gray-700 text-sm font-bold mb-2">Duración</label>
                         <select 
                             name="duracion_horas"
                             value={formData.duracion_horas}
@@ -141,7 +207,7 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
 
                     {/* Total Estimado */}
                     <div className="flex justify-between items-center bg-gray-50 border border-gray-200 p-4 rounded-lg mb-6">
-                        <span className="text-gray-600 font-medium">Total a Pagar:</span>
+                        <span className="text-gray-600 font-medium">Total:</span>
                         <span className="text-3xl font-bold text-green-600">${totalEstimado.toFixed(2)}</span>
                     </div>
 
@@ -157,9 +223,9 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
                         <button 
                             type="submit" 
                             disabled={loading}
-                            className="px-6 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 transition shadow-lg disabled:opacity-50 disabled:shadow-none"
+                            className={`px-6 py-2 text-white font-bold rounded shadow-lg disabled:opacity-50 disabled:shadow-none transition ${isAdmin ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                         >
-                            {loading ? 'Confirmando...' : 'Confirmar Reserva'}
+                            {loading ? 'Procesando...' : 'Confirmar Reserva'}
                         </button>
                     </div>
                 </form>

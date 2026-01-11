@@ -39,44 +39,44 @@ class FacturaController extends Controller
         ]);
     }
 
-    public function procesar(Request $request, Reserva $reserva)
+public function procesar(Request $request, Reserva $reserva)
     {
-        // 1. Calcular cuánto debe REALMENTE
+        // 1. Calcular saldo
         $saldoPendiente = $reserva->precio_alquiler_total - $reserva->monto_comprobante;
 
-        // 2. Validaciones estrictas
+        // 2. VALIDACIÓN SEGURA (Sin concatenar strings para evitar errores de comas/puntos)
         $request->validate([
             'metodo' => 'required',
-            'monto' => [
-                'required',
-                'numeric',
-                'min:0.01', // No permite 0 ni negativos
-                'max:' . $saldoPendiente // No permite pagar más de lo que debe
-            ],
-            // Si usas el código "confia pelado", no necesitas validarlo aquí si ya lo haces en el front,
-            // pero podrías agregar un campo 'codigo' nullable.
+            'monto'  => 'required|numeric|min:0.01|lte:' . $saldoPendiente // Usamos lte (less than or equal)
         ], [
-            'monto.max' => 'El monto ingresado supera la deuda pendiente ($' . number_format($saldoPendiente, 2) . ').',
+            'monto.lte' => 'El monto supera la deuda pendiente ($' . number_format($saldoPendiente, 2) . ').',
             'monto.min' => 'El monto debe ser mayor a 0.'
         ]);
 
         $montoAbonado = $request->monto;
 
-        // 3. ACTUALIZAR RESERVA
+        // --- REGLA DEL 50% ---
         $nuevoMonto = $reserva->monto_comprobante + $montoAbonado;
-        
+        $mitad = $reserva->precio_alquiler_total / 2;
+
+        // Usamos bccomp para comparar flotantes con precisión segura (opcional pero recomendado)
+        // O simplemente tu lógica anterior:
+        if ($reserva->estado === 'pendiente' && $nuevoMonto < ($mitad - 0.01)) { // Margen de 1 centavo
+            return back()->withErrors([
+                'monto' => 'El abono inicial debe cubrir el 50% ($' . number_format($mitad, 2) . ').'
+            ]);
+        }
+
+        // 3. ACTUALIZAR RESERVA
         $datosActualizar = ['monto_comprobante' => $nuevoMonto];
 
-        // Regla del 50% para confirmar
-        $mitad = $reserva->precio_alquiler_total / 2;
-        if ($reserva->estado === 'pendiente' && $nuevoMonto >= $mitad) {
+        if ($reserva->estado === 'pendiente' && $nuevoMonto >= ($mitad - 0.01)) {
             $datosActualizar['estado'] = 'confirmada';
         }
 
         $reserva->update($datosActualizar);
 
         // 4. ACTUALIZAR FACTURA
-        // Si la deuda queda en 0 (o casi 0 por decimales), se marca pagada
         $estaPagada = ($reserva->precio_alquiler_total - $nuevoMonto) <= 0.01;
         
         $reserva->factura->update([
