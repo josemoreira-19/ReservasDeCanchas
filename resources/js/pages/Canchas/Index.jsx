@@ -244,7 +244,6 @@ export default function Index({ auth, canchas, isAdmin }) {
 
                             <div>
                             <InputLabel value="Precio fin de semana ($)" />
-                            {/* CORREGIDO: Input vinculado a precio_fin_de_semana */}
                             <TextInput 
                                 type="number" 
                                 step="0.01" 
@@ -254,6 +253,17 @@ export default function Index({ auth, canchas, isAdmin }) {
                                 required 
                             />
                             <InputError message={errors.precio_fin_de_semana} />
+                        </div>
+                        
+                        <div>
+                            <InputLabel value="Imágenes de la Cancha" />
+                            <input 
+                                type="file" 
+                                multiple // <--- IMPORTANTE: Permite seleccionar varias
+                                onChange={e => setData('imagenes', e.target.files)} // Inertia maneja archivos así
+                                className="w-full mt-1 border border-gray-300 rounded p-2"
+                            />
+                            <InputError message={errors.imagenes} />
                         </div>
 
                         <div>

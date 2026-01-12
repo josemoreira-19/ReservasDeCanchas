@@ -14,11 +14,10 @@ class CanchaController extends Controller
      */
     public function index()
     {
-        $canchas = Cancha::all(); // O Cancha::where('estado', 'activa')->get() para clientes
-
+        $canchas = Cancha::with('images')->get(); 
+        
         return Inertia::render('Canchas/Index', [
             'canchas' => $canchas,
-            // Pasamos un prop extra para saber si es admin desde React facilito
             'isAdmin' => auth()->check() && auth()->user()->role === 'admin'
         ]);
     }
@@ -30,11 +29,27 @@ class CanchaController extends Controller
             'nombre' => 'required|string|max:50',
             'tipo' => 'required|string|max:50',
             'precio_por_hora' => 'required|numeric|min:0',
-            // AÑADIDO: Validación para el precio de fin de semana
             'precio_fin_de_semana' => 'required|numeric|min:0', 
+            'imagenes.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048'
         ]);
 
-        Cancha::create($request->all());
+        // Cancha::create($request->all());
+
+        $cancha = Cancha::create($request->except('imagenes'));
+
+        // 2. Subir las imágenes si existen
+        if ($request->hasFile('imagenes')) {
+            foreach ($request->file('imagenes') as $imagen) {
+                // Guarda en storage/app/public/canchas
+                $path = $imagen->store('canchas', 'public'); 
+                
+                // Crea el registro en la tabla nueva
+                $cancha->images()->create([
+                    'ruta' => $path
+                ]);
+            }
+        }
+
 
         return redirect()->back()->with('success', 'Cancha creada correctamente.');
     }

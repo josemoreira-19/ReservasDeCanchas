@@ -85,7 +85,7 @@ class ReservaController extends Controller
     // =============================================================
     // 2. CREAR RESERVA
     // =============================================================
-    public function store(Request $request)
+public function store(Request $request)
     {
         $request->validate([
             'cancha_id'      => 'required|exists:canchas,id',
@@ -96,8 +96,14 @@ class ReservaController extends Controller
         ]);
 
         $duracion = (int) $request->duracion_horas;
+        
+        // Convertimos a Carbon
         $fecha = Carbon::parse($request->fecha_reserva)->format('Y-m-d');
-        $inicio = Carbon::parse($request->hora_inicio);
+        $inicio = Carbon::parse($request->hora_inicio); // Esto toma la fecha de hoy + hora, pero para isWeekend sirve igual si se ajusta la fecha
+        
+        // IMPORTANTE: Aseguramos que $inicio tenga la fecha de la reserva para validar correctamente el día de la semana
+        $inicio = Carbon::parse($request->fecha_reserva . ' ' . $request->hora_inicio);
+        
         $fin = $inicio->copy()->addHours($duracion);
 
         $horaInicioStr = $inicio->format('H:i:s');
@@ -129,7 +135,18 @@ class ReservaController extends Controller
              throw \Illuminate\Validation\ValidationException::withMessages(['general' => 'Cancha en mantenimiento.']);
         }
 
-        $precioTotal = $cancha->precio_por_hora * $duracion;
+        // --- LÓGICA DE PRECIO (INTEGRADA) ---
+        // Verificamos si la fecha de la reserva es Sábado o Domingo
+        if ($inicio->isWeekend()) {
+            $precioPorHoraAplicado = $cancha->precio_fin_de_semana;
+        } else {
+            $precioPorHoraAplicado = $cancha->precio_por_hora;
+        }
+
+        // Calculamos el total con el precio decidido
+        $precioTotal = $precioPorHoraAplicado * $duracion;
+        // ------------------------------------
+
         $desglose = $this->calcularDesglosePrecio($precioTotal, 15);
         
         // Asignar Dueño
