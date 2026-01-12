@@ -40,7 +40,7 @@ export default function Index({ auth, canchas, isAdmin }) {
     // Formulario de Admin CORREGIDO
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nombre: '',
-        tipo: 'Futbol 5',
+        tipo: 'Futbol',
         precio_por_hora: '', // <--- CORREGIDO: Coincide con la BD
         estado: 'disponible',
     });
@@ -58,7 +58,7 @@ export default function Index({ auth, canchas, isAdmin }) {
         } else {
             setCanchaEditar(null);
             reset();
-            setData('tipo', 'Futbol 5');
+            setData('tipo', 'futbol');
             setData('estado', 'disponible');
         }
         setModalAdminOpen(true);
@@ -72,7 +72,7 @@ export default function Index({ auth, canchas, isAdmin }) {
             });
         } else {
             post(route('canchas.store'), {
-                onSuccess: () => setModalAdminOpen(false)
+                onSuccess: () => reset()| setModalAdminOpen(false)
             });
         }
     };
@@ -120,7 +120,7 @@ export default function Index({ auth, canchas, isAdmin }) {
                                         {!estaDisponible && (
                                             <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
                                                 <span className="text-sm font-bold bg-red-600 text-white px-3 py-1 rounded uppercase tracking-widest shadow">
-                                                    MANTENIMIENTO
+                                                    NO DISPONIBLE
                                                 </span>
                                             </div>
                                         )}
@@ -220,15 +220,16 @@ export default function Index({ auth, canchas, isAdmin }) {
                         <div>
                             <InputLabel value="Tipo" />
                             <select value={data.tipo} onChange={e => setData('tipo', e.target.value)} className="w-full mt-1 border-gray-300 rounded">
-                                <option value="Futbol 5">Fútbol 5</option>
-                                <option value="Futbol 7">Fútbol 7</option>
+                                <option value="Futbol">Fútbol</option>
                                 <option value="Voley">Voley</option>
+                                <option value="Basquet">Basquet</option>
+                                <option value="Indoor">Indoor</option>
                                 <option value="Tenis">Tenis</option>
-                            </select>
+                                </select>
                             <InputError message={errors.tipo} />
                         </div>
                         <div>
-                            <InputLabel value="Precio ($)" />
+                            <InputLabel value="Precio normal($)" />
                             {/* CORREGIDO: Input vinculado a precio_por_hora */}
                             <TextInput 
                                 type="number" 
@@ -240,7 +241,21 @@ export default function Index({ auth, canchas, isAdmin }) {
                             />
                             <InputError message={errors.precio_por_hora} />
                         </div>
-                        
+
+                            <div>
+                            <InputLabel value="Precio fin de semana ($)" />
+                            {/* CORREGIDO: Input vinculado a precio_fin_de_semana */}
+                            <TextInput 
+                                type="number" 
+                                step="0.01" 
+                                value={data.precio_fin_de_semana} 
+                                onChange={e => setData('precio_fin_de_semana', e.target.value)} 
+                                className="w-full mt-1" 
+                                required 
+                            />
+                            <InputError message={errors.precio_fin_de_semana} />
+                        </div>
+
                         <div>
                             <InputLabel value="Estado" />
                             <select value={data.estado} onChange={e => setData('estado', e.target.value)} className="w-full mt-1 border-gray-300 rounded">

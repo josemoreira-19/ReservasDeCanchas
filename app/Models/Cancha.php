@@ -13,6 +13,7 @@ protected $fillable = [
     'nombre',
     'tipo',
     'precio_por_hora',
+    'precio_fin_de_semana',
     'estado',
 ];
 public function reservas()

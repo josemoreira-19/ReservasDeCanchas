@@ -12,7 +12,7 @@ class CanchaController extends Controller
      * Muestra la lista de canchas.
      * Sirve tanto para Admin como para Cliente.
      */
-public function index()
+    public function index()
     {
         $canchas = Cancha::all(); // O Cancha::where('estado', 'activa')->get() para clientes
 
@@ -30,6 +30,8 @@ public function index()
             'nombre' => 'required|string|max:50',
             'tipo' => 'required|string|max:50',
             'precio_por_hora' => 'required|numeric|min:0',
+            // AÑADIDO: Validación para el precio de fin de semana
+            'precio_fin_de_semana' => 'required|numeric|min:0', 
         ]);
 
         Cancha::create($request->all());
@@ -44,6 +46,8 @@ public function index()
             'nombre' => 'required|string|max:50',
             'tipo' => 'required|string|max:50',
             'precio_por_hora' => 'required|numeric|min:0',
+            // AÑADIDO: Validación para el precio de fin de semana
+            'precio_fin_de_semana' => 'required|numeric|min:0',
         ]);
 
         $cancha->update($request->all());
@@ -62,5 +66,4 @@ public function index()
         $cancha->delete();
         return back()->with('success', 'Cancha eliminada.');
     }
-
 }

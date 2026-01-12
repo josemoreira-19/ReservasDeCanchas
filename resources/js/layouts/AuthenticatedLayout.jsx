@@ -58,6 +58,13 @@ export default function AuthenticatedLayout({ header, children }) {
                                 >
                                     Reservas & Facturas
                                 </NavLink>
+
+                                <NavLink 
+                                href={route('contactanos')}
+                                active={route().current('contactanos')}
+                                >
+                                    Contáctanos
+                                </NavLink>
                             </div>
                         </div>
 
