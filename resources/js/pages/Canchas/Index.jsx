@@ -40,7 +40,7 @@ export default function Index({ auth, canchas, isAdmin }) {
     // Formulario de Admin CORREGIDO
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nombre: '',
-        tipo: 'futbol',
+        tipo: 'Futbol',
         precio_por_hora: '', // <--- CORREGIDO: Coincide con la BD
         estado: 'disponible',
     });
@@ -120,7 +120,7 @@ export default function Index({ auth, canchas, isAdmin }) {
                                         {!estaDisponible && (
                                             <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
                                                 <span className="text-sm font-bold bg-red-600 text-white px-3 py-1 rounded uppercase tracking-widest shadow">
-                                                    MANTENIMIENTO
+                                                    NO DISPONIBLE
                                                 </span>
                                             </div>
                                         )}
@@ -220,11 +220,11 @@ export default function Index({ auth, canchas, isAdmin }) {
                         <div>
                             <InputLabel value="Tipo" />
                             <select value={data.tipo} onChange={e => setData('tipo', e.target.value)} className="w-full mt-1 border-gray-300 rounded">
-                                <option value="futbol">Fútbol</option>
-                                <option value="voley">Voley</option>
-                                <option value="basked">Basquet</option>
-                                <option value="indor">Indoor 7</option>
-                                <option value="tenis">Tenis</option>
+                                <option value="Futbol">Fútbol</option>
+                                <option value="Voley">Voley</option>
+                                <option value="Basquet">Basquet</option>
+                                <option value="Indoor">Indoor 7</option>
+                                <option value="Tenis">Tenis</option>
                                 </select>
                             <InputError message={errors.tipo} />
                         </div>
