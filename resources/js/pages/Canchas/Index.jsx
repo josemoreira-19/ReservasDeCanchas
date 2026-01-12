@@ -72,7 +72,7 @@ export default function Index({ auth, canchas, isAdmin }) {
             });
         } else {
             post(route('canchas.store'), {
-                onSuccess: () => setModalAdminOpen(false)
+                onSuccess: () => reset()| setModalAdminOpen(false)
             });
         }
     };
@@ -223,7 +223,7 @@ export default function Index({ auth, canchas, isAdmin }) {
                                 <option value="Futbol">Fútbol</option>
                                 <option value="Voley">Voley</option>
                                 <option value="Basquet">Basquet</option>
-                                <option value="Indoor">Indoor 7</option>
+                                <option value="Indoor">Indoor</option>
                                 <option value="Tenis">Tenis</option>
                                 </select>
                             <InputError message={errors.tipo} />
