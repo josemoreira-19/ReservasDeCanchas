@@ -50,6 +50,7 @@
         <div class="hidden md:flex space-x-8 items-center">
             <a href="#inicio" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">Inicio</a>
             <a href="#caracteristicas" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">Servicios</a>
+            <a href="{{ route('contactanos') }}" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">Contáctanos</a>
         </div>
         <div class="flex items-center gap-3">
             <a href="{{ route('login') }}" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition">Ingresar</a>
@@ -147,6 +148,7 @@
                 <h4 class="text-xl font-bold mb-2">Canchas Llaverito</h4>
                 <p class="text-slate-400 text-sm">Proyecto de Ingeniería de Software - ULEAM Chone</p>
                 <p class="text-slate-500 text-xs mt-1">&copy; {{ date('Y') }} Todos los derechos reservados.</p>
+                <a href="{{ route('contactanos') }}" class="text-slate-400 hover:text-white transition underline">Contacto y Ayuda</a>
             </div>
             <div class="flex gap-4">
                 <a href="{{ route('register') }}" class="px-6 py-3 bg-indigo-600 rounded-lg font-bold hover:bg-indigo-500 transition">

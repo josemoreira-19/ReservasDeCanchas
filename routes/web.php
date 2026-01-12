@@ -22,6 +22,8 @@ Route::get('/', function () {
     return view('inicio');
 });
 
+Route::inertia('/contactanos', 'Contactanos')->name('contactanos');
+
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
