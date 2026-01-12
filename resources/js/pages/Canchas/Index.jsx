@@ -10,6 +10,98 @@ import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import InputError from '@/Components/InputError';
 
+// --- COMPONENTE INTERNO: CABECERA DE LA CANCHA (IMÁGENES) ---
+// Esto maneja la lógica de "Click para ver fotos" sin romper tu diseño
+const CanchaHeader = ({ cancha, estaDisponible }) => {
+    const [mostrarFotos, setMostrarFotos] = useState(false);
+    const [indiceFoto, setIndiceFoto] = useState(0);
+
+    // Si no hay imágenes, siempre mostramos el diseño original (Balón)
+    const tieneImagenes = cancha.images && cancha.images.length > 0;
+
+    const toggleVista = () => {
+        if (tieneImagenes) {
+            setMostrarFotos(!mostrarFotos);
+        }
+    };
+
+    const siguienteFoto = (e) => {
+        e.stopPropagation(); // Evita que se cierre/cambie la vista al dar click a la flecha
+        setIndiceFoto((prev) => (prev + 1) % cancha.images.length);
+    };
+
+    const anteriorFoto = (e) => {
+        e.stopPropagation();
+        setIndiceFoto((prev) => (prev - 1 + cancha.images.length) % cancha.images.length);
+    };
+
+    // VISTA 1: CARRUSEL DE FOTOS
+    if (mostrarFotos && tieneImagenes) {
+        return (
+            <div className="h-40 w-full relative bg-gray-100 group">
+                <img 
+                    src={`/storage/${cancha.images[indiceFoto].ruta}`} 
+                    alt={cancha.nombre}
+                    className="w-full h-full object-cover transition-all duration-500"
+                />
+                
+                {/* Botón para volver al icono (X) */}
+                <button 
+                    onClick={toggleVista}
+                    className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 z-10"
+                    title="Ver icono"
+                >
+                    ✕
+                </button>
+
+                {/* Flechas de navegación (Solo si hay más de 1 foto) */}
+                {cancha.images.length > 1 && (
+                    <>
+                        <button onClick={anteriorFoto} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full p-1">
+                            ⬅
+                        </button>
+                        <button onClick={siguienteFoto} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full p-1">
+                            ➡
+                        </button>
+                    </>
+                )}
+                
+                {/* Indicador de fotos */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/40 text-white text-xs px-2 rounded-full">
+                    {indiceFoto + 1} / {cancha.images.length}
+                </div>
+            </div>
+        );
+    }
+
+    // VISTA 2: DISEÑO ORIGINAL (FONDO VERDE / BALÓN)
+    return (
+        <div 
+            onClick={toggleVista}
+            className={`h-40 flex items-center justify-center text-white text-4xl font-bold relative 
+            ${!estaDisponible ? 'bg-gray-400' : 'bg-gradient-to-r from-emerald-500 to-teal-600'} 
+            ${tieneImagenes ? 'cursor-pointer hover:opacity-90 transition' : ''}`}
+            title={tieneImagenes ? "Click para ver fotos" : ""}
+        >
+            {tieneImagenes && (
+                <span className="absolute top-2 right-2 text-xs bg-white/20 px-2 py-1 rounded backdrop-blur-sm">
+                    📷 Ver fotos
+                </span>
+            )}
+
+            ⚽
+            {!estaDisponible && (
+                <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                    <span className="text-sm font-bold bg-red-600 text-white px-3 py-1 rounded uppercase tracking-widest shadow">
+                        NO DISPONIBLE
+                    </span>
+                </div>
+            )}
+        </div>
+    );
+};
+
+
 export default function Index({ auth, canchas, isAdmin }) {
     
     // --- LÓGICA DE CLIENTE ---
@@ -37,12 +129,15 @@ export default function Index({ auth, canchas, isAdmin }) {
     const [modalAdminOpen, setModalAdminOpen] = useState(false);
     const [canchaEditar, setCanchaEditar] = useState(null);
 
-    // Formulario de Admin CORREGIDO
-    const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
+    // Formulario de Admin (ACTUALIZADO CON TUS NUEVOS CAMPOS)
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         nombre: '',
         tipo: 'Futbol',
-        precio_por_hora: '', // <--- CORREGIDO: Coincide con la BD
+        precio_por_hora: '',
+        precio_fin_de_semana: '', // NUEVO
         estado: 'disponible',
+        imagenes: [], // NUEVO: Para subir archivos
+        _method: 'POST' // Truco para Inertia al editar archivos
     });
 
     const abrirModalAdmin = (cancha = null) => {
@@ -52,27 +147,42 @@ export default function Index({ auth, canchas, isAdmin }) {
             setData({
                 nombre: cancha.nombre,
                 tipo: cancha.tipo,
-                precio_por_hora: cancha.precio_por_hora, // <--- CORREGIDO: Ahora sí carga el valor
-                estado: cancha.estado || 'disponible'
+                precio_por_hora: cancha.precio_por_hora,
+                precio_fin_de_semana: cancha.precio_fin_de_semana || '', // Cargar dato
+                estado: cancha.estado || 'disponible',
+                imagenes: [], // Resetear input de archivos
+                _method: 'PUT' // Importante para editar con archivos en Laravel
             });
         } else {
             setCanchaEditar(null);
             reset();
-            setData('tipo', 'futbol');
-            setData('estado', 'disponible');
+            setData({
+                nombre: '',
+                tipo: 'futbol',
+                precio_por_hora: '',
+                precio_fin_de_semana: '',
+                estado: 'disponible',
+                imagenes: [],
+                _method: 'POST'
+            });
         }
         setModalAdminOpen(true);
     };
 
     const submitAdmin = (e) => {
         e.preventDefault();
+        
+        // NOTA: Cuando se suben archivos en 'edición', Laravel exige usar POST
+        // pero simulando PUT con el campo _method.
         if (canchaEditar) {
-            put(route('canchas.update', canchaEditar.id), {
-                onSuccess: () => setModalAdminOpen(false)
+            post(route('canchas.update', canchaEditar.id), {
+                onSuccess: () => setModalAdminOpen(false),
+                forceFormData: true, // Obligatorio para archivos
             });
         } else {
             post(route('canchas.store'), {
-                onSuccess: () => reset()| setModalAdminOpen(false)
+                onSuccess: () => { reset(); setModalAdminOpen(false); },
+                forceFormData: true, // Obligatorio para archivos
             });
         }
     };
@@ -108,23 +218,14 @@ export default function Index({ auth, canchas, isAdmin }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {canchas.map((cancha) => {
                             const estaDisponible = cancha.estado === 'disponible';
-                            // Ahora usamos directamente la variable correcta
                             const precio = cancha.precio_por_hora; 
 
                             return (
                                 <div key={cancha.id} className={`bg-white overflow-hidden shadow-lg rounded-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-100 flex flex-col ${!estaDisponible ? 'opacity-75' : ''}`}>
                                     
-                                    {/* Imagen / Placeholder */}
-                                    <div className={`h-40 flex items-center justify-center text-white text-4xl font-bold relative ${!estaDisponible ? 'bg-gray-400' : 'bg-gradient-to-r from-emerald-500 to-teal-600'}`}>
-                                        ⚽
-                                        {!estaDisponible && (
-                                            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                                                <span className="text-sm font-bold bg-red-600 text-white px-3 py-1 rounded uppercase tracking-widest shadow">
-                                                    NO DISPONIBLE
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
+                                    {/* --- AQUÍ REEMPLAZAMOS EL DIV ESTATICO POR EL COMPONENTE HEADER --- */}
+                                    <CanchaHeader cancha={cancha} estaDisponible={estaDisponible} />
+                                    {/* ------------------------------------------------------------- */}
 
                                     <div className="p-6 flex-1 flex flex-col">
                                         <div className="flex justify-between items-start mb-2">
@@ -142,8 +243,17 @@ export default function Index({ auth, canchas, isAdmin }) {
                                         </p>
                                         
                                         <div className="mt-auto">
-                                            <div className="text-2xl font-black text-gray-800 mb-4">
-                                                ${precio} <span className="text-sm font-normal text-gray-500">/ hora</span>
+                                            {/* PRECIOS ACTUALIZADOS */}
+                                            <div className="flex justify-between items-end mb-4">
+                                                <div className="text-2xl font-black text-gray-800">
+                                                    ${precio} <span className="text-sm font-normal text-gray-500">/h</span>
+                                                </div>
+                                                {/* Mostrar precio fin de semana si existe */}
+                                                {cancha.precio_fin_de_semana && (
+                                                    <div className="text-xs text-right bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                                                        <span className="font-bold">Finde:</span> ${cancha.precio_fin_de_semana}
+                                                    </div>
+                                                )}
                                             </div>
                                             
                                             <div className="flex flex-col gap-2">
@@ -185,7 +295,7 @@ export default function Index({ auth, canchas, isAdmin }) {
                 </div>
             </div>
 
-            {/* MODALES CLIENTE */}
+            {/* MODALES CLIENTE (Sin cambios) */}
             <CalendarioSemanal 
                 isOpen={modalCalendarioOpen} 
                 onClose={() => setModalCalendarioOpen(false)} 
@@ -204,7 +314,7 @@ export default function Index({ auth, canchas, isAdmin }) {
                 onSuccess={manejarExito}
             />
 
-            {/* MODAL ADMIN (CREAR/EDITAR) */}
+            {/* MODAL ADMIN (Con tus inputs actualizados) */}
             <Modal show={modalAdminOpen} onClose={() => setModalAdminOpen(false)}>
                 <div className="p-6">
                     <h2 className="text-lg font-medium text-gray-900 mb-4">
@@ -230,7 +340,6 @@ export default function Index({ auth, canchas, isAdmin }) {
                         </div>
                         <div>
                             <InputLabel value="Precio normal($)" />
-                            {/* CORREGIDO: Input vinculado a precio_por_hora */}
                             <TextInput 
                                 type="number" 
                                 step="0.01" 
@@ -242,7 +351,7 @@ export default function Index({ auth, canchas, isAdmin }) {
                             <InputError message={errors.precio_por_hora} />
                         </div>
 
-                            <div>
+                        <div>
                             <InputLabel value="Precio fin de semana ($)" />
                             <TextInput 
                                 type="number" 
@@ -259,10 +368,11 @@ export default function Index({ auth, canchas, isAdmin }) {
                             <InputLabel value="Imágenes de la Cancha" />
                             <input 
                                 type="file" 
-                                multiple // <--- IMPORTANTE: Permite seleccionar varias
-                                onChange={e => setData('imagenes', e.target.files)} // Inertia maneja archivos así
+                                multiple
+                                onChange={e => setData('imagenes', e.target.files)}
                                 className="w-full mt-1 border border-gray-300 rounded p-2"
                             />
+                            <p className="text-xs text-gray-500 mt-1">Selecciona varias imágenes (JPG, PNG). Máx 2MB.</p>
                             <InputError message={errors.imagenes} />
                         </div>
 

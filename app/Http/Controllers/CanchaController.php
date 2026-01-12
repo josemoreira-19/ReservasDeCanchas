@@ -4,16 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Cancha;
 use Illuminate\Http\Request;
-use Inertia\Inertia; // Necesario para React
+use Inertia\Inertia;
+use Illuminate\Support\Facades\Storage; // Importante para borrar si quisieras
 
 class CanchaController extends Controller
 {
-    /**
-     * Muestra la lista de canchas.
-     * Sirve tanto para Admin como para Cliente.
-     */
     public function index()
     {
+        // Traemos las imágenes con la cancha
         $canchas = Cancha::with('images')->get(); 
         
         return Inertia::render('Canchas/Index', [
@@ -22,7 +20,7 @@ class CanchaController extends Controller
         ]);
     }
 
-    // GUARDAR (Solo Admin)
+    // GUARDAR
     public function store(Request $request)
     {
         $request->validate([
@@ -30,52 +28,64 @@ class CanchaController extends Controller
             'tipo' => 'required|string|max:50',
             'precio_por_hora' => 'required|numeric|min:0',
             'precio_fin_de_semana' => 'required|numeric|min:0', 
-            'imagenes.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048'
+            'imagenes.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120' // Aumenté un poco el tamaño a 5MB
         ]);
 
-        // Cancha::create($request->all());
-
+        // 1. Crear la cancha (quitando el array de imágenes para que no de error SQL)
         $cancha = Cancha::create($request->except('imagenes'));
 
-        // 2. Subir las imágenes si existen
+        // 2. Subir las imágenes
         if ($request->hasFile('imagenes')) {
             foreach ($request->file('imagenes') as $imagen) {
-                // Guarda en storage/app/public/canchas
                 $path = $imagen->store('canchas', 'public'); 
                 
-                // Crea el registro en la tabla nueva
                 $cancha->images()->create([
                     'ruta' => $path
                 ]);
             }
         }
 
-
-        return redirect()->back()->with('success', 'Cancha creada correctamente.');
+        return redirect()->back()->with('success', 'Cancha creada con imágenes.');
     }
 
-    // ACTUALIZAR (Solo Admin)
+    // ACTUALIZAR
     public function update(Request $request, Cancha $cancha)
     {
         $request->validate([
             'nombre' => 'required|string|max:50',
             'tipo' => 'required|string|max:50',
             'precio_por_hora' => 'required|numeric|min:0',
-            // AÑADIDO: Validación para el precio de fin de semana
             'precio_fin_de_semana' => 'required|numeric|min:0',
+            'imagenes.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120'
         ]);
 
-        $cancha->update($request->all());
+        // 1. Actualizar datos de texto (Ignoramos imágenes aquí)
+        $cancha->update($request->except(['imagenes', '_method']));
+
+        // 2. AGREGAR IMÁGENES NUEVAS (Esto faltaba en tu código)
+        if ($request->hasFile('imagenes')) {
+            foreach ($request->file('imagenes') as $imagen) {
+                $path = $imagen->store('canchas', 'public'); 
+                
+                $cancha->images()->create([
+                    'ruta' => $path
+                ]);
+            }
+        }
 
         return redirect()->back()->with('success', 'Cancha actualizada.');
     }
 
-    // ELIMINAR (Solo Admin)
+    // ELIMINAR
     public function destroy(Cancha $cancha)
     {
-        // Validación de seguridad: No borrar si tiene reservas futuras
         if ($cancha->reservas()->where('fecha', '>=', now()->toDateString())->exists()) {
             return back()->with('error', 'No puedes eliminar esta cancha porque tiene reservas pendientes.');
+        }
+
+        // Opcional: Borrar las imágenes del servidor al eliminar la cancha
+        foreach($cancha->images as $img){
+            Storage::disk('public')->delete($img->ruta);
         }
 
         $cancha->delete();
