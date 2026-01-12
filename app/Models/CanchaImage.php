@@ -10,7 +10,7 @@ class CanchaImage extends Model
 
     use HasFactory;
 
-    protected $fillable = ['cancha_id', 'ruta'];
+    protected $fillable = ['cancha_id', 'ruta', 'orden'];
 
     public function cancha()
     {

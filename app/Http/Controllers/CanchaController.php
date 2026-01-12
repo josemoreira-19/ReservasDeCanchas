@@ -12,8 +12,10 @@ class CanchaController extends Controller
     public function index()
     {
         // Traemos las imágenes con la cancha
-        $canchas = Cancha::with('images')->get(); 
-        
+        $canchas = Cancha::with(['images' => function($query) {
+            $query->orderBy('orden', 'asc');
+        }])->get();        
+
         return Inertia::render('Canchas/Index', [
             'canchas' => $canchas,
             'isAdmin' => auth()->check() && auth()->user()->role === 'admin'
@@ -56,19 +58,46 @@ class CanchaController extends Controller
             'tipo' => 'required|string|max:50',
             'precio_por_hora' => 'required|numeric|min:0',
             'precio_fin_de_semana' => 'required|numeric|min:0',
-            'imagenes.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120'
+            'imagenes.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            // Validamos los arrays de gestión de imágenes
+            'imagenes_eliminar' => 'nullable|array',
+            'imagenes_orden' => 'nullable|array', // Recibiremos [{id: 1, orden: 0}, {id: 3, orden: 1}]
         ]);
 
-        // 1. Actualizar datos de texto (Ignoramos imágenes aquí)
-        $cancha->update($request->except(['imagenes', '_method']));
+        // 1. Actualizar info básica
+        $cancha->update($request->except(['imagenes', 'imagenes_eliminar', 'imagenes_orden', '_method']));
 
-        // 2. AGREGAR IMÁGENES NUEVAS (Esto faltaba en tu código)
+        // 2. ELIMINAR IMÁGENES MARCADAS
+        if ($request->has('imagenes_eliminar')) {
+            $idsParaBorrar = $request->imagenes_eliminar;
+            // Buscamos las imágenes para borrar también el archivo físico
+            $imagenes = \App\Models\CanchaImage::whereIn('id', $idsParaBorrar)->get();
+            
+            foreach ($imagenes as $img) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($img->ruta);
+                $img->delete();
+            }
+        }
+
+        // 3. ACTUALIZAR ORDEN (De las que quedaron)
+        if ($request->has('imagenes_orden')) {
+            foreach ($request->imagenes_orden as $item) {
+                // Actualizamos el orden de cada ID recibido
+                \App\Models\CanchaImage::where('id', $item['id'])->update(['orden' => $item['orden']]);
+            }
+        }
+
+        // 4. SUBIR NUEVAS IMÁGENES
         if ($request->hasFile('imagenes')) {
-            foreach ($request->file('imagenes') as $imagen) {
+            // Obtenemos el último orden para agregar las nuevas al final
+            $ultimoOrden = $cancha->images()->max('orden') ?? 0;
+
+            foreach ($request->file('imagenes') as $index => $imagen) {
                 $path = $imagen->store('canchas', 'public'); 
                 
                 $cancha->images()->create([
-                    'ruta' => $path
+                    'ruta' => $path,
+                    'orden' => $ultimoOrden + $index + 1
                 ]);
             }
         }

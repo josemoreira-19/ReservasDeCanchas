@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('cancha_id')->constrained()->onDelete('cascade'); 
             $table->string('ruta'); 
+            $table->integer('orden')->default(0);
             $table->timestamps();
         });
     }

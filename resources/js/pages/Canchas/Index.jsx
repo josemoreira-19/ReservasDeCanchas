@@ -11,12 +11,10 @@ import TextInput from '@/Components/TextInput';
 import InputError from '@/Components/InputError';
 
 // --- COMPONENTE INTERNO: CABECERA DE LA CANCHA (IMÁGENES) ---
-// Esto maneja la lógica de "Click para ver fotos" sin romper tu diseño
 const CanchaHeader = ({ cancha, estaDisponible }) => {
     const [mostrarFotos, setMostrarFotos] = useState(false);
     const [indiceFoto, setIndiceFoto] = useState(0);
 
-    // Si no hay imágenes, siempre mostramos el diseño original (Balón)
     const tieneImagenes = cancha.images && cancha.images.length > 0;
 
     const toggleVista = () => {
@@ -26,7 +24,7 @@ const CanchaHeader = ({ cancha, estaDisponible }) => {
     };
 
     const siguienteFoto = (e) => {
-        e.stopPropagation(); // Evita que se cierre/cambie la vista al dar click a la flecha
+        e.stopPropagation(); 
         setIndiceFoto((prev) => (prev + 1) % cancha.images.length);
     };
 
@@ -35,7 +33,6 @@ const CanchaHeader = ({ cancha, estaDisponible }) => {
         setIndiceFoto((prev) => (prev - 1 + cancha.images.length) % cancha.images.length);
     };
 
-    // VISTA 1: CARRUSEL DE FOTOS
     if (mostrarFotos && tieneImagenes) {
         return (
             <div className="h-40 w-full relative bg-gray-100 group">
@@ -45,7 +42,6 @@ const CanchaHeader = ({ cancha, estaDisponible }) => {
                     className="w-full h-full object-cover transition-all duration-500"
                 />
                 
-                {/* Botón para volver al icono (X) */}
                 <button 
                     onClick={toggleVista}
                     className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 z-10"
@@ -54,19 +50,13 @@ const CanchaHeader = ({ cancha, estaDisponible }) => {
                     ✕
                 </button>
 
-                {/* Flechas de navegación (Solo si hay más de 1 foto) */}
                 {cancha.images.length > 1 && (
                     <>
-                        <button onClick={anteriorFoto} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full p-1">
-                            ⬅
-                        </button>
-                        <button onClick={siguienteFoto} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full p-1">
-                            ➡
-                        </button>
+                        <button onClick={anteriorFoto} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full p-1">⬅</button>
+                        <button onClick={siguienteFoto} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full p-1">➡</button>
                     </>
                 )}
                 
-                {/* Indicador de fotos */}
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/40 text-white text-xs px-2 rounded-full">
                     {indiceFoto + 1} / {cancha.images.length}
                 </div>
@@ -74,7 +64,6 @@ const CanchaHeader = ({ cancha, estaDisponible }) => {
         );
     }
 
-    // VISTA 2: DISEÑO ORIGINAL (FONDO VERDE / BALÓN)
     return (
         <div 
             onClick={toggleVista}
@@ -84,17 +73,12 @@ const CanchaHeader = ({ cancha, estaDisponible }) => {
             title={tieneImagenes ? "Click para ver fotos" : ""}
         >
             {tieneImagenes && (
-                <span className="absolute top-2 right-2 text-xs bg-white/20 px-2 py-1 rounded backdrop-blur-sm">
-                    📷 Ver fotos
-                </span>
+                <span className="absolute top-2 right-2 text-xs bg-white/20 px-2 py-1 rounded backdrop-blur-sm">📷 Ver fotos</span>
             )}
-
             ⚽
             {!estaDisponible && (
                 <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                    <span className="text-sm font-bold bg-red-600 text-white px-3 py-1 rounded uppercase tracking-widest shadow">
-                        NO DISPONIBLE
-                    </span>
+                    <span className="text-sm font-bold bg-red-600 text-white px-3 py-1 rounded uppercase tracking-widest shadow">NO DISPONIBLE</span>
                 </div>
             )}
         </div>
@@ -129,15 +113,17 @@ export default function Index({ auth, canchas, isAdmin }) {
     const [modalAdminOpen, setModalAdminOpen] = useState(false);
     const [canchaEditar, setCanchaEditar] = useState(null);
 
-    // Formulario de Admin (ACTUALIZADO CON TUS NUEVOS CAMPOS)
+    // Formulario de Admin 
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         nombre: '',
         tipo: 'Futbol',
         precio_por_hora: '',
-        precio_fin_de_semana: '', // NUEVO
+        precio_fin_de_semana: '',
         estado: 'disponible',
-        imagenes: [], // NUEVO: Para subir archivos
-        _method: 'POST' // Truco para Inertia al editar archivos
+        imagenes: [],         
+        imagenes_existentes: [],
+        imagenes_eliminar: [],  
+        _method: 'POST'    
     });
 
     const abrirModalAdmin = (cancha = null) => {
@@ -148,10 +134,12 @@ export default function Index({ auth, canchas, isAdmin }) {
                 nombre: cancha.nombre,
                 tipo: cancha.tipo,
                 precio_por_hora: cancha.precio_por_hora,
-                precio_fin_de_semana: cancha.precio_fin_de_semana || '', // Cargar dato
+                precio_fin_de_semana: cancha.precio_fin_de_semana || '',
                 estado: cancha.estado || 'disponible',
-                imagenes: [], // Resetear input de archivos
-                _method: 'PUT' // Importante para editar con archivos en Laravel
+                imagenes: [],
+                imagenes_existentes: cancha.images || [], 
+                imagenes_eliminar: [],
+                _method: 'PUT'
             });
         } else {
             setCanchaEditar(null);
@@ -163,26 +151,64 @@ export default function Index({ auth, canchas, isAdmin }) {
                 precio_fin_de_semana: '',
                 estado: 'disponible',
                 imagenes: [],
+                imagenes_existentes: [],
+                imagenes_eliminar: [],
                 _method: 'POST'
             });
         }
         setModalAdminOpen(true);
     };
 
+    // --- NUEVAS FUNCIONES PARA GESTIÓN DE IMÁGENES ---
+
+    const marcarParaEliminar = (id) => {
+        const nuevasEliminar = [...data.imagenes_eliminar, id];
+        const nuevasExistentes = data.imagenes_existentes.filter(img => img.id !== id);
+        
+        setData(prev => ({
+            ...prev,
+            imagenes_eliminar: nuevasEliminar,
+            imagenes_existentes: nuevasExistentes
+        }));
+    };
+
+    const moverImagen = (index, direction) => {
+        const nuevas = [...data.imagenes_existentes];
+        if (index + direction < 0 || index + direction >= nuevas.length) return;
+
+        // Intercambio
+        const temp = nuevas[index];
+        nuevas[index] = nuevas[index + direction];
+        nuevas[index + direction] = temp;
+
+        setData('imagenes_existentes', nuevas);
+    };
+
     const submitAdmin = (e) => {
         e.preventDefault();
         
-        // NOTA: Cuando se suben archivos en 'edición', Laravel exige usar POST
-        // pero simulando PUT con el campo _method.
+        // Calculamos el orden final antes de enviar
+        const arrayOrden = data.imagenes_existentes.map((img, index) => ({
+            id: img.id,
+            orden: index
+        }));
+
+        // Combinamos la data del form con el array de orden
+        const datosParaEnviar = {
+            ...data,
+            imagenes_orden: arrayOrden
+        };
+
         if (canchaEditar) {
-            post(route('canchas.update', canchaEditar.id), {
+            // Usamos router.post para controlar mejor el FormData con archivos y arrays complejos
+            router.post(route('canchas.update', canchaEditar.id), datosParaEnviar, {
                 onSuccess: () => setModalAdminOpen(false),
-                forceFormData: true, // Obligatorio para archivos
+                forceFormData: true,
             });
         } else {
             post(route('canchas.store'), {
                 onSuccess: () => { reset(); setModalAdminOpen(false); },
-                forceFormData: true, // Obligatorio para archivos
+                forceFormData: true,
             });
         }
     };
@@ -223,9 +249,7 @@ export default function Index({ auth, canchas, isAdmin }) {
                             return (
                                 <div key={cancha.id} className={`bg-white overflow-hidden shadow-lg rounded-xl hover:shadow-2xl transition-shadow duration-300 border border-gray-100 flex flex-col ${!estaDisponible ? 'opacity-75' : ''}`}>
                                     
-                                    {/* --- AQUÍ REEMPLAZAMOS EL DIV ESTATICO POR EL COMPONENTE HEADER --- */}
                                     <CanchaHeader cancha={cancha} estaDisponible={estaDisponible} />
-                                    {/* ------------------------------------------------------------- */}
 
                                     <div className="p-6 flex-1 flex flex-col">
                                         <div className="flex justify-between items-start mb-2">
@@ -243,12 +267,10 @@ export default function Index({ auth, canchas, isAdmin }) {
                                         </p>
                                         
                                         <div className="mt-auto">
-                                            {/* PRECIOS ACTUALIZADOS */}
                                             <div className="flex justify-between items-end mb-4">
                                                 <div className="text-2xl font-black text-gray-800">
                                                     ${precio} <span className="text-sm font-normal text-gray-500">/h</span>
                                                 </div>
-                                                {/* Mostrar precio fin de semana si existe */}
                                                 {cancha.precio_fin_de_semana && (
                                                     <div className="text-xs text-right bg-blue-50 text-blue-700 px-2 py-1 rounded">
                                                         <span className="font-bold">Finde:</span> ${cancha.precio_fin_de_semana}
@@ -295,7 +317,7 @@ export default function Index({ auth, canchas, isAdmin }) {
                 </div>
             </div>
 
-            {/* MODALES CLIENTE (Sin cambios) */}
+            {/* MODALES */}
             <CalendarioSemanal 
                 isOpen={modalCalendarioOpen} 
                 onClose={() => setModalCalendarioOpen(false)} 
@@ -314,7 +336,7 @@ export default function Index({ auth, canchas, isAdmin }) {
                 onSuccess={manejarExito}
             />
 
-            {/* MODAL ADMIN (Con tus inputs actualizados) */}
+            {/* MODAL ADMIN (CREAR/EDITAR) */}
             <Modal show={modalAdminOpen} onClose={() => setModalAdminOpen(false)}>
                 <div className="p-6">
                     <h2 className="text-lg font-medium text-gray-900 mb-4">
@@ -335,7 +357,7 @@ export default function Index({ auth, canchas, isAdmin }) {
                                 <option value="Basquet">Basquet</option>
                                 <option value="Indoor">Indoor</option>
                                 <option value="Tenis">Tenis</option>
-                                </select>
+                            </select>
                             <InputError message={errors.tipo} />
                         </div>
                         <div>
@@ -364,8 +386,68 @@ export default function Index({ auth, canchas, isAdmin }) {
                             <InputError message={errors.precio_fin_de_semana} />
                         </div>
                         
+                        {/* --- SECCIÓN DE GESTIÓN DE IMÁGENES EXISTENTES --- */}
+                        {data.imagenes_existentes.length > 0 && (
+                            <div className="mb-4">
+                                <InputLabel value="Imágenes Actuales (Usa las flechas para ordenar)" />
+                                <div className="grid grid-cols-3 gap-2 mt-2">
+                                    {data.imagenes_existentes.map((img, index) => (
+                                        <div key={img.id} className="relative group border rounded bg-gray-50 p-1">
+                                            <img 
+                                                src={`/storage/${img.ruta}`} 
+                                                className="w-full h-20 object-cover rounded" 
+                                                alt="Cancha"
+                                            />
+                                            
+                                            {/* Controles Overlay */}
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2 rounded">
+                                                {/* Mover Izquierda */}
+                                                {index > 0 && (
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => moverImagen(index, -1)}
+                                                        className="text-white hover:text-yellow-300 font-bold text-lg"
+                                                        title="Mover antes"
+                                                    >
+                                                        ⬅
+                                                    </button>
+                                                )}
+
+                                                {/* Eliminar */}
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => marcarParaEliminar(img.id)}
+                                                    className="bg-red-600 text-white p-1 rounded hover:bg-red-700"
+                                                    title="Eliminar imagen"
+                                                >
+                                                    🗑️
+                                                </button>
+
+                                                {/* Mover Derecha */}
+                                                {index < data.imagenes_existentes.length - 1 && (
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => moverImagen(index, 1)}
+                                                        className="text-white hover:text-yellow-300 font-bold text-lg"
+                                                        title="Mover después"
+                                                    >
+                                                        ➡
+                                                    </button>
+                                                )}
+                                            </div>
+                                            
+                                            {/* Indicador de orden */}
+                                            <span className="absolute bottom-0 right-0 bg-black/60 text-white text-xs px-1 rounded-tl">
+                                                {index + 1}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <div>
-                            <InputLabel value="Imágenes de la Cancha" />
+                            <InputLabel value={data.imagenes_existentes.length > 0 ? "Agregar más imágenes" : "Imágenes de la Cancha"} />
                             <input 
                                 type="file" 
                                 multiple
