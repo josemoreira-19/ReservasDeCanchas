@@ -41,9 +41,9 @@
     <div class="header clearfix">
         <div class="info-empresa">
             <strong style="font-size: 18px;">Canchas Llaverito</strong><br>
-            RUC: 123456789001<br>
+            RUC: 1314592385001<br>
             Chone, Manabí<br>
-            Tel: 099-999-9999
+            Tel: 098-352-6285
         </div>
         <div class="logo">
             FACTURA ELECTRÓNICA

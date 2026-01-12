@@ -218,4 +218,26 @@ class ReservaController extends Controller
 
         return response()->json(['reservas' => $reservas]);
     }
+    public function cancelarPorAbandono(Reserva $reserva)
+    {
+        // Seguridad: Solo permitir borrar si la reserva está pendiente
+        // Esto evita borrar reservas pagadas por error.
+        if ($reserva->estado === 'pendiente') {
+            
+            // 1. Si se creó un borrador de factura, borrarlo primero
+            if ($reserva->factura) {
+                $reserva->factura->delete();
+            }
+
+            // 2. Eliminar la reserva físicamente
+            $reserva->delete();
+
+            return to_route('dashboard')
+                ->with('status', 'La reserva incompleta ha sido eliminada.');
+        }
+
+        // Si intentan borrar una pagada, solo los devolvemos al inicio
+        return to_route('dashboard')
+            ->with('error', 'No se puede cancelar esta reserva.');
+    }
 }
