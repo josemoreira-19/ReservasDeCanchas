@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Illuminate\Support\Str;
 
 class ReservaController extends Controller
 {
@@ -178,6 +179,7 @@ public function store(Request $request)
                 'total' => $precioTotal,
                 'metodo' => 'efectivo',
                 'pago' => 'pendiente',
+                'codigo_unico' => Str::uuid()->toString(),
             ]);
 
             $reserva->update(['facturas_id' => $factura->id]);

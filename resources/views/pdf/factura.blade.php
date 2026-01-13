@@ -116,8 +116,17 @@
                 <td style="text-align: right; color: green;">$ {{ $reserva->monto_comprobante }}</td>
             </tr> -->
         </table>
-    </div>
-
+        <div style="text-align: center; margin-top: 20px;">
+            @if(isset($qrCode))
+                <p style="font-size: 10px; color: #555; margin-bottom: 5px;">Escanea para validar autenticidad</p>
+                
+                {{-- CAMBIO CLAVE: Usamos una etiqueta IMG con data URI --}}
+                <img src="data:image/svg+xml;base64,{{ $qrCode }}" alt="QR Code" style="width: 150px; height: 150px;">
+                
+            @else
+                <p style="color: red; font-size: 10px;">Error al generar código de seguridad</p>
+            @endif
+        </div>
     <div class="status">
         Gracias por su preferencia. ¡Disfrute su partido!<br>
         Documento generado electrónicamente.
