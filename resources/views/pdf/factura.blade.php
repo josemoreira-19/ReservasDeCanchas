@@ -91,7 +91,7 @@
                     </span>
                 </td>
                 <td style="text-align: center;">{{ $reserva->duracion_horas }}</td>
-                <td style="text-align: right;">$ {{ number_format($reserva->cancha->precio_por_hora, 2) }}</td>
+                <td style="text-align: right;">$ {{ number_format($reserva->precio_alquiler_total / $reserva->duracion_horas, 2) }} </td>
                 <td style="text-align: right;">$ {{ number_format($reserva->precio_alquiler_total, 2) }}</td>
             </tr>
         </tbody>
