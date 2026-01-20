@@ -20,6 +20,8 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
     const [errors, setErrors] = useState({});
     const [totalEstimado, setTotalEstimado] = useState(0);
 
+    const [nombreClienteSeleccionado, setNombreClienteSeleccionado] = useState('');
+    
     // 1. CALCULAR PRECIO AUTOMÁTICAMENTE
 useEffect(() => {
         if (cancha && formData.duracion_horas) {

@@ -52,8 +52,8 @@ const CanchaHeader = ({ cancha, estaDisponible }) => {
 
                 {cancha.images.length > 1 && (
                     <>
-                        <button onClick={anteriorFoto} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full p-1">⬅</button>
-                        <button onClick={siguienteFoto} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full p-1">➡</button>
+                        <button onClick={anteriorFoto} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full p-1"><img src="/images/arrow-left.png" style={{ width: '20px', height: '20px' }} alt="Anterior" /></button>
+                        <button onClick={siguienteFoto} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white rounded-full p-1"><img src="/images/arrow-right.png" style={{ width: '20px', height: '20px' }} alt="Siguiente" /></button>
                     </>
                 )}
                 
@@ -73,7 +73,7 @@ const CanchaHeader = ({ cancha, estaDisponible }) => {
             title={tieneImagenes ? "Click para ver fotos" : ""}
         >
             {tieneImagenes && (
-                <span className="absolute top-2 right-2 text-xs bg-white/20 px-2 py-1 rounded backdrop-blur-sm">📷 Ver fotos</span>
+                <span className="absolute top-2 right-2 text-xs bg-white/20 px-2 py-1 rounded backdrop-blur-sm">Ver fotos</span>
             )}
             ⚽
             {!estaDisponible && (
@@ -288,22 +288,22 @@ export default function Index({ auth, canchas, isAdmin }) {
                                                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                                         }`}
                                                 >
-                                                    {estaDisponible ? '📅 Ver Horarios' : '⛔ No Disponible'}
+                                                    {estaDisponible ?  'Ver Horarios' : '⛔ No Disponible'}
                                                 </button>
 
                                                 {isAdmin && (
                                                     <div className="flex gap-2 mt-2 pt-3 border-t">
                                                         <button 
                                                             onClick={() => abrirModalAdmin(cancha)}
-                                                            className="flex-1 bg-yellow-100 text-yellow-700 py-1 rounded text-sm font-bold hover:bg-yellow-200"
+                                                            className="flex-1 bg-yellow-100 text-yellow-700 py-1 rounded text-sm font-bold hover:bg-yellow-200 flex items-center justify-center gap-2"
                                                         >
-                                                            ✏️ Editar
+                                                            <img src="images/edit.png" alt="Editar" style={{ width: '16px', height: '16px', }} /> Editar
                                                         </button>
                                                         <button 
                                                             onClick={() => eliminarCancha(cancha)}
-                                                            className="flex-1 bg-red-100 text-red-700 py-1 rounded text-sm font-bold hover:bg-red-200"
+                                                            className="flex-1 bg-red-100 text-red-700 py-1 rounded text-sm font-bold hover:bg-red-200 flex items-center justify-center gap-2"
                                                         >
-                                                            🗑️ Eliminar
+                                                            <img src="images/delete.png" alt="Editar" style={{ width: '16px', height: '16px', }} /> Eliminar
                                                         </button>
                                                     </div>
                                                 )}
