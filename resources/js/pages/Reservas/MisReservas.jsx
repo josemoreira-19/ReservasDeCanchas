@@ -216,7 +216,7 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
                                                                     <img src="/images/imprimir.png" alt="imprimir" style={{ width: '16px', height: '16px' }} />
                                                                 </button>
                                                             )}
-
+    
                                                             {/* 3. Botón Cancelar: Solo si NO está cancelada */}
                                                             {!estaCancelada && (
                                                                 <button onClick={() => handleCancelarAdmin(reserva.id)} className="text-red-600 hover:text-red-900 border border-red-200 px-2 py-1 rounded bg-red-50 hover:bg-red-100" title="Cancelar">

@@ -361,14 +361,33 @@ export default function Index({ auth, canchas, isAdmin }) {
                             <InputError message={errors.tipo} />
                         </div>
                         <div>
-                            <InputLabel value="Precio normal($)" />
+                            <InputLabel value="Precio normal ($)" />
                             <TextInput 
-                                type="number" 
+                                type="text" 
+                                inputMode="decimal"
                                 step="0.01" 
                                 value={data.precio_por_hora} 
-                                onChange={e => setData('precio_por_hora', e.target.value)} 
+                                onChange={(e) => {
+                                        let value = e.target.value;
+
+                                        // Solo números y punto
+                                        value = value.replace(/[^0-9.]/g, '');
+
+                                        // Solo un punto
+                                        if ((value.match(/\./g) || []).length > 1) return;
+
+                                        // Máx 2 decimales
+                                        if (value.includes('.')) {
+                                            const [int, dec] = value.split('.');
+                                            value = int + '.' + dec.slice(0, 2);
+                                        }
+
+                                        setData('precio_por_hora', value);
+                                    }}                                
                                 className="w-full mt-1" 
                                 required 
+                                maxlength={5}
+                                min="0"
                             />
                             <InputError message={errors.precio_por_hora} />
                         </div>
@@ -376,12 +395,31 @@ export default function Index({ auth, canchas, isAdmin }) {
                         <div>
                             <InputLabel value="Precio fin de semana ($)" />
                             <TextInput 
-                                type="number" 
+                                type="text" 
+                                inputMode="decimal"
                                 step="0.01" 
                                 value={data.precio_fin_de_semana} 
-                                onChange={e => setData('precio_fin_de_semana', e.target.value)} 
+                                onChange={(e) => {
+                                        let value = e.target.value;
+
+                                        // Solo números y punto
+                                        value = value.replace(/[^0-9.]/g, '');
+
+                                        // Solo un punto
+                                        if ((value.match(/\./g) || []).length > 1) return;
+
+                                        // Máx 2 decimales
+                                        if (value.includes('.')) {
+                                            const [int, dec] = value.split('.');
+                                            value = int + '.' + dec.slice(0, 2);
+                                        }
+
+                                        setData('precio_fin_de_semana', value);
+                                    }}
                                 className="w-full mt-1" 
                                 required 
+                                maxlength={5}
+                                min="0"
                             />
                             <InputError message={errors.precio_fin_de_semana} />
                         </div>

@@ -11,7 +11,7 @@ Schedule::call(function () {
     $limiteTiempo = now()->subMinutes(5);
 
     $reservasCaducadas = Reserva::where('estado', 'pendiente')
-        ->where('monto_comprobante', 0) // <--- NUEVO: Solo si no ha pagado NADA
+        ->where('monto_comprobante', 0) 
         ->where('created_at', '<=', $limiteTiempo)
         ->get();
 

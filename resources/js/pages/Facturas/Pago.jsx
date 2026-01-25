@@ -22,9 +22,9 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
     // REFERENCIAS (Banderas para el Guardián)
     const enviandoPagoRef = useRef(false); // Estamos pagando
     const cancelandoRef = useRef(false);   // Estamos cancelando y borrando
-    const saliendoRef = useRef(false);     // NUEVO: Estamos saliendo voluntariamente (Admin)
+    const saliendoRef = useRef(false);     // Estamos saliendo voluntariamente (Admin)
 
-    // FUNCIÓN 1: PROCESAR PAGO (Botón Azul)
+    // PROCESAR PAGO (Botón Azul)
     const procesarPago = (e) => {
         e.preventDefault();
         setErrorLocal(null);
@@ -65,7 +65,7 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
         });
     };
 
-    // FUNCIÓN 2: CANCELAR AHORA (Botón Rojo - Eliminar Reserva)
+    // CANCELAR AHORA (Botón Rojo - Eliminar Reserva)
     const cancelarAhora = () => {
         if (confirm("¿Estás seguro de cancelar? La reserva se eliminará inmediatamente.")) {
             setProcesando(true);
@@ -77,13 +77,12 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
         }
     };
 
-    // FUNCIÓN 3: SALIR SIN PAGAR (Botón Gris - Solo Admin)
+    // SALIR SIN PAGAR (Botón Gris - Solo Admin)
     const salirSinPagar = () => {
         // Activamos la bandera para que el guardián nos deje pasar
         saliendoRef.current = true;
-        // Redirigimos al Dashboard o Lista de Reservas
-        router.visit(route('dashboard')); // O route('reservas.index') si tienes esa ruta
-    };
+        // Redirigimos al Dashboard
+        router.visit(route('dashboard')); 
 
     // EL GUARDIÁN (useEffect)
     useEffect(() => {
@@ -282,4 +281,5 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
             </div>
         </AuthenticatedLayout>
     );
+}
 }

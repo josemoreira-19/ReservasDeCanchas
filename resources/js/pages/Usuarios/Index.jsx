@@ -176,13 +176,16 @@ export default function Index({ auth, users, filters }) {
 
                         <div>
                             <InputLabel value="Cédula" />
-                            <TextInput 
-                                value={data.cedula} 
-                                onChange={e => setData('cedula', e.target.value)} 
-                                className="w-full mt-1" 
-                                required 
-                            />
-                            <InputError message={errors.cedula} />
+                                <TextInput 
+                                    value={data.cedula} 
+                                    onChange={e => setData('cedula', e.target.value.replace(/\D/g, ''))} 
+                                    className="w-full mt-1" 
+                                    required 
+                                    maxLength={10}
+                                    type="text"
+                                    inputMode="numeric"
+                                /> 
+                                <InputError message={errors.cedula} />
                         </div>
 
                         <div>
