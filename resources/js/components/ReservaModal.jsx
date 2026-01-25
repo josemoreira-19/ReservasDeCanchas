@@ -20,14 +20,28 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
     const [errors, setErrors] = useState({});
     const [totalEstimado, setTotalEstimado] = useState(0);
 
-    // 1. CALCULAR PRECIO AUTOMÁTICAMENTE
-    useEffect(() => {
-        if (cancha) {
-            const precio = parseFloat(cancha.precio_por_hora);
-            setTotalEstimado(precio * formData.duracion_horas);
-        }
-    }, [formData.duracion_horas, cancha]);
+    const [nombreClienteSeleccionado, setNombreClienteSeleccionado] = useState('');
     
+    // 1. CALCULAR PRECIO AUTOMÁTICAMENTE
+useEffect(() => {
+        if (cancha && formData.duracion_horas) {
+            let precioAplicado = parseFloat(cancha.precio_por_hora);
+
+            // Si hay una fecha seleccionada, verificamos el día
+            if (formData.fecha_reserva) {
+                // Truco: Agregamos 'T12:00:00' para evitar problemas de zona horaria al crear la fecha
+                const fechaObj = new Date(formData.fecha_reserva + 'T12:00:00');
+                const diaSemana = fechaObj.getDay(); // 0 = Domingo, 6 = Sábado
+
+                // Si es Sábado (6) o Domingo (0) Y existe precio de fin de semana
+                if ((diaSemana === 0 || diaSemana === 6) && cancha.precio_fin_de_semana) {
+                    precioAplicado = parseFloat(cancha.precio_fin_de_semana);
+                }
+            }
+
+            setTotalEstimado(precioAplicado * formData.duracion_horas);
+        }
+    }, [formData.duracion_horas, formData.fecha_reserva, cancha]);    
     // 2. AUTO-RELLENAR DATOS
     useEffect(() => {
         if (initialData) {
@@ -42,6 +56,28 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
     }, [initialData]);
 
     if (!isOpen) return null;
+
+
+    const getPrecioDisplay = () => {
+        if (!cancha) return { precio: 0, esFinde: false };
+        
+        let precio = parseFloat(cancha.precio_por_hora);
+        let esFinde = false;
+
+        if (formData.fecha_reserva) {
+            // "T12:00:00" evita problemas de zona horaria que cambien el día
+            const fechaObj = new Date(formData.fecha_reserva + 'T12:00:00');
+            const dia = fechaObj.getDay(); // 0 Domingo, 6 Sábado
+
+            if ((dia === 0 || dia === 6) && cancha.precio_fin_de_semana) {
+                precio = parseFloat(cancha.precio_fin_de_semana);
+                esFinde = true;
+            }
+        }
+        return { precio: precio.toFixed(2), esFinde };
+    };
+
+    const { precio: precioMostrado, esFinde } = getPrecioDisplay();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -108,11 +144,18 @@ export default function ReservaModal({ isOpen, onClose, cancha, onSuccess, initi
                 </div>
 
                 {/* Info de la Cancha */}
-                <div className="bg-blue-50 p-3 rounded-md mb-4 text-sm text-blue-800 border border-blue-100">
+                <div className={`p-3 rounded-md mb-4 text-sm border ${esFinde ? 'bg-indigo-50 text-indigo-800 border-indigo-200' : 'bg-blue-50 text-blue-800 border-blue-100'}`}>
                     Estás reservando: <strong>{cancha?.nombre}</strong><br />
-                    Precio por hora: <strong>${cancha?.precio_por_hora}</strong>
+                    
+                    Precio por hora: <strong>${precioMostrado}</strong>
+                    
+                    {/* Etiqueta pequeña para avisar al usuario */}
+                    {esFinde && (
+                        <span className="ml-2 text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full font-bold">
+                            ★ Tarifa Fin de Semana
+                        </span>
+                    )}
                 </div>
-
                 {/* CAJA DE ERRORES */}
                 {(errors.hora_inicio || errors.duracion_horas || errors.general || errors.cliente_id) && (
                     <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative animate-pulse text-sm">

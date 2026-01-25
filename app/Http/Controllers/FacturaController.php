@@ -7,6 +7,10 @@ use App\Models\Factura;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Barryvdh\DomPDF\Facade\Pdf;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 
 class FacturaController extends Controller
 {
@@ -87,27 +91,50 @@ public function procesar(Request $request, Reserva $reserva)
         return redirect()->route('reservas.mis-reservas')->with('success', 'Pago registrado correctamente.');
     }
 
-    public function descargarPDF($reserva_id)
+public function descargarPDF($reserva_id)
     {
         // 1. Buscar datos
         $reserva = Reserva::with(['factura', 'cancha', 'user'])->findOrFail($reserva_id);
         
-        // 2. Seguridad: Solo el dueño o admin
+        // 2. Seguridad
         if (auth()->id() !== $reserva->user_id && auth()->user()->role !== 'admin') {
             abort(403);
         }
         
-        // 3. Validar si tiene factura
+        // 3. Validar factura
         if (!$reserva->factura) {
             return back()->with('error', 'Esta reserva no tiene factura generada.');
         }
 
         $factura = $reserva->factura;
 
-        // 4. Generar PDF
-        $pdf = Pdf::loadView('pdf.factura', compact('reserva', 'factura'));
+        // --- 4. GENERACIÓN DEL QR (CORREGIDO PARA DOMPDF) ---
+        try {
+            // Datos JSON
+            $dataQR = json_encode([
+                'id'  => $factura->id,
+                'uid' => $factura->codigo_unico ?? 'legacy-' . $factura->id 
+            ]);
 
-        // 5. Descargar (stream abre en navegador)
+            // Configuración BaconQrCode
+            $renderer = new ImageRenderer(
+                new RendererStyle(150),
+                new SvgImageBackEnd()
+            );
+            $writer = new Writer($renderer);
+            
+            // CAMBIO CLAVE: Generamos el string y lo convertimos a BASE64
+            $qrString = $writer->writeString($dataQR);
+            $qrCode = base64_encode($qrString);
+
+        } catch (\Exception $e) {
+            $qrCode = null;
+        }
+        // ----------------------------------------------------
+
+        // 5. Generar PDF
+        $pdf = Pdf::loadView('pdf.factura', compact('reserva', 'factura', 'qrCode'));
+
         return $pdf->stream('factura-' . $reserva->id . '.pdf');
-    }
+    }    
 }

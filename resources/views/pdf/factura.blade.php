@@ -41,9 +41,9 @@
     <div class="header clearfix">
         <div class="info-empresa">
             <strong style="font-size: 18px;">Canchas Llaverito</strong><br>
-            RUC: 123456789001<br>
+            RUC: 1314592385001<br>
             Chone, Manabí<br>
-            Tel: 099-999-9999
+            Tel: 098-352-6285
         </div>
         <div class="logo">
             FACTURA ELECTRÓNICA
@@ -91,7 +91,7 @@
                     </span>
                 </td>
                 <td style="text-align: center;">{{ $reserva->duracion_horas }}</td>
-                <td style="text-align: right;">$ {{ number_format($reserva->cancha->precio_por_hora, 2) }}</td>
+                <td style="text-align: right;">$ {{ number_format($reserva->precio_alquiler_total / $reserva->duracion_horas, 2) }} </td>
                 <td style="text-align: right;">$ {{ number_format($reserva->precio_alquiler_total, 2) }}</td>
             </tr>
         </tbody>
@@ -116,8 +116,17 @@
                 <td style="text-align: right; color: green;">$ {{ $reserva->monto_comprobante }}</td>
             </tr> -->
         </table>
-    </div>
-
+        <div style="text-align: center; margin-top: 20px;">
+            @if(isset($qrCode))
+                <p style="font-size: 10px; color: #555; margin-bottom: 5px;">Escanea para validar autenticidad</p>
+                
+                {{-- CAMBIO CLAVE: Usamos una etiqueta IMG con data URI --}}
+                <img src="data:image/svg+xml;base64,{{ $qrCode }}" alt="QR Code" style="width: 150px; height: 150px;">
+                
+            @else
+                <p style="color: red; font-size: 10px;">Error al generar código de seguridad</p>
+            @endif
+        </div>
     <div class="status">
         Gracias por su preferencia. ¡Disfrute su partido!<br>
         Documento generado electrónicamente.

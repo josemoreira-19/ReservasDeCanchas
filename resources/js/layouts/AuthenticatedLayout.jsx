@@ -33,7 +33,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                     href={route('dashboard')}
                                     active={route().current('dashboard')}
                                 >
-                                    Dashboard
+                                    Inicio
                                 </NavLink>
 
                                 {user.role === 'admin' && (
@@ -57,6 +57,13 @@ export default function AuthenticatedLayout({ header, children }) {
                                     active={route().current('reservas.mis-reservas')}
                                 >
                                     Reservas & Facturas
+                                </NavLink>
+
+                                <NavLink 
+                                href={route('contactanos')}
+                                active={route().current('contactanos')}
+                                >
+                                    Contáctanos
                                 </NavLink>
                             </div>
                         </div>
@@ -160,7 +167,7 @@ export default function AuthenticatedLayout({ header, children }) {
                             href={route('dashboard')}
                             active={route().current('dashboard')}
                         >
-                            Dashboard
+                            Inicio
                         </ResponsiveNavLink>
 
                         {user.role === 'admin' && (

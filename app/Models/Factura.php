@@ -17,7 +17,8 @@ class Factura extends Model
         'impuestos',
         'total',
         'metodo',
-        'pago'
+        'pago',
+        'codigo_unico'
     ];
 
     public function reserva()

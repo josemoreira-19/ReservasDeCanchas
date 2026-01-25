@@ -144,13 +144,15 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
                     {isAdmin ? (
                         <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                             <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-bold text-gray-800">📊 Gestión de Reservas</h2>
+                                <h2 className="text-2xl font-bold text-gray-800"> Gestión de Reservas</h2>
                                 <div className="relative w-full max-w-sm">
                                     <input 
                                         type="text" placeholder="Buscar..." value={search} onChange={handleSearch}
                                         className="w-full border-gray-300 rounded-lg pl-10 focus:ring-indigo-500 focus:border-indigo-500"
                                     />
-                                    <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
+                                    <span className="absolute left-3 top-2.5 text-gray-400">
+                                    <img src="/images/lupa.png" alt="buscar" style={{ width: '16px', height: '16px' }} /> 
+                                    </span>
                                 </div>
                             </div>
 
@@ -203,17 +205,23 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
                                                             
                                                             {/* 1. Botón Cobrar: Solo si NO está pagada Y NO está cancelada */}
                                                             {!estaCancelada && !pagada && (
-                                                                <button onClick={() => irAPagar(reserva.id)} className="text-green-600 hover:text-green-900 border border-green-200 px-2 py-1 rounded bg-green-50 hover:bg-green-100" title="Cobrar">💰</button>
+                                                                <button onClick={() => irAPagar(reserva.id)} className="text-green-600 hover:text-green-900 border border-green-200 px-2 py-1 rounded bg-green-50 hover:bg-green-100" title="Cobrar">
+                                                                    <img src="/images/cobrar.png" alt="Cobrar" style={{ width: '16px', height: '16px' }} />
+                                                                </button>
                                                             )}
                                                             
                                                             {/* 2. Botón PDF: Solo si está pagada Y NO está cancelada */}
                                                             {!estaCancelada && pagada && (
-                                                                <button onClick={() => irAImprimir(reserva.id)} className="text-gray-600 hover:text-gray-900 border border-gray-200 px-2 py-1 rounded bg-gray-50 hover:bg-gray-100" title="PDF">🖨️</button>
+                                                                <button onClick={() => irAImprimir(reserva.id)} className="text-gray-600 hover:text-gray-900 border border-gray-200 px-2 py-1 rounded bg-gray-50 hover:bg-gray-100" title="PDF">
+                                                                    <img src="/images/imprimir.png" alt="imprimir" style={{ width: '16px', height: '16px' }} />
+                                                                </button>
                                                             )}
-
+    
                                                             {/* 3. Botón Cancelar: Solo si NO está cancelada */}
                                                             {!estaCancelada && (
-                                                                <button onClick={() => handleCancelarAdmin(reserva.id)} className="text-red-600 hover:text-red-900 border border-red-200 px-2 py-1 rounded bg-red-50 hover:bg-red-100" title="Cancelar">❌</button>
+                                                                <button onClick={() => handleCancelarAdmin(reserva.id)} className="text-red-600 hover:text-red-900 border border-red-200 px-2 py-1 rounded bg-red-50 hover:bg-red-100" title="Cancelar">
+                                                                    <img src="/images/cancelar.png" alt="Cancelar" style={{ width: '16px', height: '16px' }} />
+                                                                </button>
                                                             )}
 
                                                             {/* Si está cancelada, no muestra botones (o puedes mostrar un texto opcional) */}

@@ -14,7 +14,7 @@ export default function BuscadorCliente({ onSeleccionar }) {
         if (seleccionado) return;
 
         const timeoutId = setTimeout(() => {
-            if (query.length >= 3) {
+            if (query.length >= 2) {
                 buscarClientes();
             } else {
                 setResultados([]);

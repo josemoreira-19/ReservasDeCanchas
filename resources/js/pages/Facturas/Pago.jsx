@@ -21,9 +21,10 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
 
     // REFERENCIAS (Banderas para el Guardián)
     const enviandoPagoRef = useRef(false); // Estamos pagando
-    const cancelandoRef = useRef(false);   // Estamos cancelando voluntariamente
+    const cancelandoRef = useRef(false);   // Estamos cancelando y borrando
+    const saliendoRef = useRef(false);     // Estamos saliendo voluntariamente (Admin)
 
-    // FUNCIÓN 1: PROCESAR PAGO (Botón Azul)
+    // PROCESAR PAGO (Botón Azul)
     const procesarPago = (e) => {
         e.preventDefault();
         setErrorLocal(null);
@@ -64,31 +65,35 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
         });
     };
 
-    // FUNCIÓN 2: CANCELAR AHORA (Botón Rojo)
+    // CANCELAR AHORA (Botón Rojo - Eliminar Reserva)
     const cancelarAhora = () => {
         if (confirm("¿Estás seguro de cancelar? La reserva se eliminará inmediatamente.")) {
             setProcesando(true);
-            cancelandoRef.current = true; // Avisamos al guardián que NO bloquee la salida
+            cancelandoRef.current = true; 
 
-            // Usamos la misma ruta de 'cancelar-abandono' porque hace lo mismo: borrar.
             router.post(route('reservas.cancelar-abandono', reserva.id), {}, {
                 onFinish: () => setProcesando(false)
             });
         }
     };
 
+    // SALIR SIN PAGAR (Botón Gris - Solo Admin)
+    const salirSinPagar = () => {
+        // Activamos la bandera para que el guardián nos deje pasar
+        saliendoRef.current = true;
+        // Redirigimos al Dashboard
+        router.visit(route('dashboard')); 
+
     // EL GUARDIÁN (useEffect)
     useEffect(() => {
         const advertirSalida = (e) => {
-            // Si ya pagó, está pagando, O ESTÁ CANCELANDO VOLUNTARIAMENTE... lo dejamos pasar.
-            if (pagoCompletado || enviandoPagoRef.current || cancelandoRef.current) return;
+            // LÓGICA ACTUALIZADA: Si ya pagó, está pagando, cancelando O SALIENDO VOLUNTARIAMENTE... pase.
+            if (pagoCompletado || enviandoPagoRef.current || cancelandoRef.current || saliendoRef.current) return;
 
             const mensaje = "⚠️ ¿Seguro que quieres salir?\n\nTu reserva quedará PENDIENTE y el sistema la eliminará en 5 minutos si no registras el pago.";
 
             // Navegación interna (Navbar)
             if (e.type === 'before') {
-                // Confirm devuelve true si el usuario da OK. Si da OK, NO prevenimos (dejamos salir).
-                // Si da Cancelar, prevenimos.
                 if (!window.confirm(mensaje)) {
                     e.preventDefault(); 
                 }
@@ -153,7 +158,7 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
                                     <hr className="border-gray-200"/>
                                     <div className="flex justify-between items-center text-xl font-black text-indigo-700 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
                                         <span>Falta por Pagar:</span>
-                                        <span>${restante.toFixed(2)}</span>
+                                        <span className="text-lg font-bold">${restante.toFixed(2)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -179,9 +184,12 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
                                 </div>
                             )}
                         </div>
-                        {/* FORMULARIO */}
+                        
+                        {/* --- COLUMNA DERECHA: FORMULARIO --- */}
                         <div className="p-8">
-                            <h2 className="text-xl font-bold text-gray-800 mb-6">Realizar Abono</h2>
+                            <h2 className="text-xl font-bold text-gray-800 mb-6">
+                                {restante > 0 ? 'Registrar Pago / Abono' : 'Detalles del Pago'}
+                            </h2>
 
                             {(errors.monto || errorLocal) && (
                                 <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm border border-red-200 flex items-start gap-2">
@@ -192,61 +200,77 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
                             <form onSubmit={procesarPago}>
                                 {/* Inputs de Método y Voucher... */}
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Método</label>
-                                    {metodosDisponibles.map((metodo) => (
-                                        <label key={metodo.id} className="flex items-center p-2 mb-2 border rounded cursor-pointer hover:bg-gray-50">
-                                            <input 
-                                                type="radio" name="metodo" value={metodo.id}
-                                                checked={metodoSeleccionado === metodo.id}
-                                                onChange={(e) => setMetodoSeleccionado(e.target.value)}
-                                                className="text-indigo-600 mr-2"
-                                            />
-                                            {metodo.nombre}
-                                        </label>
-                                    ))}
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Método de Pago</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {metodosDisponibles.map((metodo) => (
+                                            <label key={metodo.id} className={`flex items-center justify-center p-3 border rounded-lg cursor-pointer transition ${metodoSeleccionado === metodo.id ? 'bg-indigo-50 border-indigo-500 text-indigo-700 ring-1 ring-indigo-500' : 'hover:bg-gray-50 border-gray-200'}`}>
+                                                <input 
+                                                    type="radio" name="metodo" value={metodo.id}
+                                                    checked={metodoSeleccionado === metodo.id}
+                                                    onChange={(e) => setMetodoSeleccionado(e.target.value)}
+                                                    className="sr-only" // Ocultamos el radio nativo feo
+                                                />
+                                                <span className="font-bold">{metodo.nombre}</span>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
 
                                 {metodoSeleccionado !== 'efectivo' && (
-                                    <div className="mb-4">
+                                    <div className="mb-4 animate-fade-in-down">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Código de Comprobante / Voucher</label>
                                         <input 
                                             type="text" required value={codigoTransaccion}
                                             onChange={(e) => { setCodigoTransaccion(e.target.value); setErrorLocal(null); }}
-                                            placeholder='Voucher: "confia pelado"'
-                                            className="w-full border-gray-300 rounded-md shadow-sm"
+                                            placeholder='Ej: 123456'
+                                            className="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                                         />
                                     </div>
                                 )}
 
                                 <div className="mb-6">
-                                    <label className="block text-sm font-medium text-gray-700">Monto ($)</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Monto a Pagar ($)</label>
                                     <input 
                                         type="number" step="0.01" value={montoPagar}
                                         onChange={(e) => { setMontoPagar(e.target.value); setErrorLocal(null); }}
-                                        className="w-full border-gray-300 rounded-md shadow-sm font-bold text-lg"
+                                        className="w-full border-gray-300 rounded-md shadow-sm font-bold text-xl py-3 px-4 text-gray-900"
                                         disabled={restante <= 0}
                                     />
                                 </div>
 
                                 {/* BOTONES DE ACCIÓN */}
-                                <div className="flex flex-col gap-3">
-                                    {/* Botón Pagar (Azul) */}
+                                <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
+                                    
+                                    {/* 1. Botón Pagar (Principal) */}
                                     <button 
                                         type="submit" 
                                         disabled={procesando || restante <= 0}
-                                        className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+                                        className="w-full py-3 px-4 rounded-lg shadow-lg text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 hover:scale-[1.02] transition-transform"
                                     >
-                                        {procesando ? 'Procesando...' : 'Confirmar Pago'}
+                                        {procesando ? 'Procesando...' : `Confirmar Pago de $${parseFloat(montoPagar || 0).toFixed(2)}`}
                                     </button>
 
-                                    {/* Botón Cancelar (Rojo) - Solo si está pendiente y no pagada */}
-                                    {reserva.estado === 'pendiente' && !pagoCompletado && (
+                                    {/* 2. Botón SALIR (Para el Admin o si ya está pagada) */}
+                                    {/* Se muestra si eres Admin O si el usuario ya pagó todo (no tiene sentido retenerlo) */}
+                                    {(auth.user.role === 'admin' || restante <= 0) && !procesando && (
                                         <button 
-                                            type="button" // Importante: type button para no enviar el form
+                                            type="button" 
+                                            onClick={salirSinPagar}
+                                            className="w-full py-3 px-4 border border-gray-300 rounded-lg text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 transition"
+                                        >
+                                            {restante <= 0 ? 'Volver al Inicio' : 'Salir sin cobrar ahora'}
+                                        </button>
+                                    )}
+
+                                    {/* 3. Botón Cancelar (Rojo) - Solo para reservas pendientes sin abono */}
+                                    {reserva.estado === 'pendiente' && abonado <= 0 && !pagoCompletado && (
+                                        <button 
+                                            type="button" 
                                             onClick={cancelarAhora}
                                             disabled={procesando}
-                                            className="w-full py-2 px-4 border border-red-300 rounded-lg text-sm font-bold text-red-600 bg-white hover:bg-red-50"
+                                            className="w-full py-2 px-4 text-sm font-bold text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
                                         >
-                                            Cancelar y Borrar Reserva
+                                            Cancelar y eliminar reserva
                                         </button>
                                     )}
                                 </div>
@@ -257,4 +281,5 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
             </div>
         </AuthenticatedLayout>
     );
-}   
+}
+}

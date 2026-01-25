@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('canchas', function (Blueprint $table) {
             $table->id();
             $table->string('nombre', 200);
-            $table->enum('tipo', ['futbol', 'voley', 'basked', 'indor', 'tenis'])->default('futbol');
+            $table->enum('tipo', ['Futbol', 'Voley', 'Basquet', 'Indoor', 'Tenis'])->default('Futbol');
             $table->decimal('precio_por_hora', 8, 2);
             $table->decimal('precio_fin_de_semana', 8, 2);
             $table->enum('estado', ['disponible', 'ocupada', 'mantenimiento'])->default('disponible');

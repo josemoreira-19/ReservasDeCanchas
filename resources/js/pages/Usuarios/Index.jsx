@@ -90,7 +90,9 @@ export default function Index({ auth, users, filters }) {
                                 onChange={handleSearch}
                                 className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pl-10"
                             />
-                            <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
+                            <span className="absolute left-3 top-2.5 text-gray-400">
+                                <img src="/images/lupa.png" alt="buscar" style={{ width: '16px', height: '16px' }} />
+                            </span>
                         </div>
                         <button 
                             onClick={() => abrirModal(null)}
@@ -174,13 +176,16 @@ export default function Index({ auth, users, filters }) {
 
                         <div>
                             <InputLabel value="Cédula" />
-                            <TextInput 
-                                value={data.cedula} 
-                                onChange={e => setData('cedula', e.target.value)} 
-                                className="w-full mt-1" 
-                                required 
-                            />
-                            <InputError message={errors.cedula} />
+                                <TextInput 
+                                    value={data.cedula} 
+                                    onChange={e => setData('cedula', e.target.value.replace(/\D/g, ''))} 
+                                    className="w-full mt-1" 
+                                    required 
+                                    maxLength={10}
+                                    type="text"
+                                    inputMode="numeric"
+                                /> 
+                                <InputError message={errors.cedula} />
                         </div>
 
                         <div>
