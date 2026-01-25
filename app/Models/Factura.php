@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory; 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Comprobante;
 
 class Factura extends Model
 {
@@ -30,4 +31,10 @@ class Factura extends Model
     {
         return $this->hasMany(FacturaItem::class);
     }
+
+    public function comprobantes()
+    {
+        return $this->hasMany(Comprobante::class);
+    }
+
 }

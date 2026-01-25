@@ -4,16 +4,16 @@ import { Head, router } from '@inertiajs/react';
 import dayjs from 'dayjs';
 
 // =================================================================
-// 1. COMPONENTES AUXILIARES
+// 1. COMPONENTES AUXILIARES (SE DEFINEN AFUERA, SIN ESTADOS PROPIOS)
 // =================================================================
 
 const EstadoBadge = ({ estado }) => {
     const estadoNorm = estado ? estado.toLowerCase() : 'pendiente';
     const colores = {
         pendiente: 'bg-yellow-100 text-yellow-800',
-        confirmada: 'bg-blue-100 text-blue-800', // Agregué confirmada por si usas ese estado
+        confirmada: 'bg-blue-100 text-blue-800',
         pagado: 'bg-green-100 text-green-800',
-        cancelada: 'bg-red-100 text-red-800', // Corregido a 'cancelada' según tu DB
+        cancelada: 'bg-red-100 text-red-800',
     };
     return (
         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${colores[estadoNorm] || 'bg-gray-100 text-gray-800'}`}>
@@ -22,10 +22,52 @@ const EstadoBadge = ({ estado }) => {
     );
 };
 
+const ModalComprobantes = ({ isOpen, onClose, comprobantes }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 relative animate-fade-in-down max-h-[90vh] overflow-y-auto">
+                
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 className="text-lg font-bold text-gray-800">📸 Comprobantes de Pago</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-red-500 text-xl font-bold">✕</button>
+                </div>
+
+                {comprobantes.length === 0 ? (
+                    <p className="text-center text-gray-500 py-4">No hay comprobantes digitales subidos.</p>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {comprobantes.map((comp) => (
+                            <div key={comp.id} className="border rounded p-2">
+                                <img 
+                                    src={`/storage/${comp.ruta_archivo}`} 
+                                    alt="Comprobante" 
+                                    className="w-full h-auto object-contain rounded hover:scale-105 transition-transform cursor-pointer"
+                                    onClick={() => window.open(`/storage/${comp.ruta_archivo}`, '_blank')}
+                                />
+                                <div className="mt-2 text-xs text-gray-500 flex justify-between">
+                                    <span>{comp.nombre_original}</span>
+                                    <a href={`/storage/${comp.ruta_archivo}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Ver Original</a>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                <div className="mt-6 flex justify-end">
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 font-bold">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const ModalDecision = ({ isOpen, onClose, onPagar, reserva }) => {
     if (!isOpen || !reserva) return null;
     
-    // Verificamos si está pagado
     const total = parseFloat(reserva.precio_alquiler_total || 0);
     const pagado = parseFloat(reserva.monto_comprobante || 0);
     const estaPagado = (total - pagado) <= 0.01;
@@ -41,22 +83,18 @@ const ModalDecision = ({ isOpen, onClose, onPagar, reserva }) => {
                 </p>
                 <div className="flex flex-col gap-3">
                     
-                    {/* CLIENTE: Solo puede Pagar si debe dinero y no está cancelada */}
                     {!estaCancelada && !estaPagado && (
                         <button onClick={onPagar} className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 font-medium">
                             💳 Realizar Pago / Abono
                         </button>
                     )}
 
-                    {/* CLIENTE: Solo puede Imprimir si está pagada y no cancelada */}
                     {estaPagado && !estaCancelada && (
                          <button onClick={() => window.open(route('facturas.pdf', reserva.id), '_blank')} className="w-full bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-900 font-medium">
                             🖨️ Imprimir Comprobante
                         </button>
                     )}
                     
-                    {/* ELIMINADO: Botón de cancelar para el cliente (Requerimiento cumplido) */}
-
                     <button onClick={onClose} className="w-full border border-gray-300 text-gray-600 py-2 rounded-lg hover:bg-gray-50">
                         Cerrar
                     </button>
@@ -67,15 +105,26 @@ const ModalDecision = ({ isOpen, onClose, onPagar, reserva }) => {
 };
 
 // =================================================================
-// 2. COMPONENTE PRINCIPAL
+// 2. COMPONENTE PRINCIPAL (AQUÍ DENTRO VAN TODOS LOS HOOKS)
 // =================================================================
 export default function Index({ auth, reservas = { data: [], links: [] }, filters, facturasDisponibles = [], isAdmin = false }) {
     
+    // --- TODOS LOS useState DEBEN ESTAR AQUÍ, DENTRO DE LA FUNCIÓN ---
     const [search, setSearch] = useState(filters?.search || '');
     const [ocultarPasadas, setOcultarPasadas] = useState(false); 
     const [reservaSeleccionada, setReservaSeleccionada] = useState(null); 
 
-    // --- ACCIONES COMUNES ---
+    // AQUÍ ES DONDE ESTABAN FALLANDO ANTES (Deben estar dentro)
+    const [modalOpen, setModalOpen] = useState(false);
+    const [comprobantesSeleccionados, setComprobantesSeleccionados] = useState([]);
+    // -------------------------------------------------------------
+
+    // --- FUNCIONES INTERNAS ---
+    const abrirModalComprobantes = (comprobantes) => {
+        setComprobantesSeleccionados(comprobantes);
+        setModalOpen(true);
+    };
+
     const irAPagar = (reservaId) => {
         router.get(route('facturas.pago', reservaId));
     };
@@ -84,7 +133,6 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
         window.open(route('facturas.pdf', reservaId), '_blank');
     };
 
-    // --- ACCIONES ADMIN ---
     const handleSearch = (e) => {
         const value = e.target.value;
         setSearch(value);
@@ -97,7 +145,6 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
         }
     };
 
-    // --- ACCIONES CLIENTE ---
     const obtenerEstadoVisual = (reserva) => {
         const total = parseFloat(reserva.precio_alquiler_total || 0);
         const pagado = parseFloat(reserva.monto_comprobante || 0);
@@ -126,7 +173,6 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
 
     const listaFacturas = facturasDisponibles || [];
 
-    // Helper para verificar estado en la tabla
     const esPagada = (r) => {
         const total = parseFloat(r.precio_alquiler_total || 0);
         const pagado = parseFloat(r.monto_comprobante || 0);
@@ -201,30 +247,35 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
                                                     <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                         <div className="flex justify-end gap-2">
                                                             
-                                                            {/* LÓGICA ESTRICTA PARA ADMIN */}
-                                                            
-                                                            {/* 1. Botón Cobrar: Solo si NO está pagada Y NO está cancelada */}
+                                                            {/* NUEVO BOTÓN: VER COMPROBANTES */}
+                                                            {reserva.factura?.comprobantes?.length > 0 && (
+                                                                <button 
+                                                                    onClick={() => abrirModalComprobantes(reserva.factura.comprobantes)} 
+                                                                    className="text-blue-600 hover:text-blue-900 border border-green-200 px-2 py-1 rounded bg-green-50 hover:bg-green-100" 
+                                                                    title={`Ver ${reserva.factura.comprobantes.length} comprobantes`}
+                                                                >
+                                                                    <img src="/images/revisarComprobante.png" alt="Ver" style={{ width: '16px', height: '16px' }} />
+                                                                </button>
+                                                            )}
+
                                                             {!estaCancelada && !pagada && (
                                                                 <button onClick={() => irAPagar(reserva.id)} className="text-green-600 hover:text-green-900 border border-green-200 px-2 py-1 rounded bg-green-50 hover:bg-green-100" title="Cobrar">
                                                                     <img src="/images/cobrar.png" alt="Cobrar" style={{ width: '16px', height: '16px' }} />
                                                                 </button>
                                                             )}
                                                             
-                                                            {/* 2. Botón PDF: Solo si está pagada Y NO está cancelada */}
                                                             {!estaCancelada && pagada && (
                                                                 <button onClick={() => irAImprimir(reserva.id)} className="text-gray-600 hover:text-gray-900 border border-gray-200 px-2 py-1 rounded bg-gray-50 hover:bg-gray-100" title="PDF">
                                                                     <img src="/images/imprimir.png" alt="imprimir" style={{ width: '16px', height: '16px' }} />
                                                                 </button>
                                                             )}
-    
-                                                            {/* 3. Botón Cancelar: Solo si NO está cancelada */}
+
                                                             {!estaCancelada && (
                                                                 <button onClick={() => handleCancelarAdmin(reserva.id)} className="text-red-600 hover:text-red-900 border border-red-200 px-2 py-1 rounded bg-red-50 hover:bg-red-100" title="Cancelar">
                                                                     <img src="/images/cancelar.png" alt="Cancelar" style={{ width: '16px', height: '16px' }} />
                                                                 </button>
                                                             )}
 
-                                                            {/* Si está cancelada, no muestra botones (o puedes mostrar un texto opcional) */}
                                                             {estaCancelada && (
                                                                 <span className="text-gray-400 text-xs italic">Sin acciones</span>
                                                             )}
@@ -316,7 +367,15 @@ export default function Index({ auth, reservas = { data: [], links: [] }, filter
                     )}
                 </div>
             </div>
+
             <ModalDecision isOpen={!!reservaSeleccionada} reserva={reservaSeleccionada} onClose={() => setReservaSeleccionada(null)} onPagar={handlePagarModal} />
+
+            <ModalComprobantes 
+                isOpen={modalOpen} 
+                onClose={() => setModalOpen(false)} 
+                comprobantes={comprobantesSeleccionados} 
+            />
+                
         </AuthenticatedLayout>
     );
 }

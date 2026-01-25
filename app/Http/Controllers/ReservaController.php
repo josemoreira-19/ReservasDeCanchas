@@ -28,7 +28,8 @@ class ReservaController extends Controller
             if ($esAdmin) {
                 // --- LÓGICA PARA ADMIN ---
                 $reservas = Reserva::query()
-                    ->with(['user', 'cancha']) 
+                    // AQUI ESTÁ EL CAMBIO: Agregamos 'factura.comprobantes'
+                    ->with(['user', 'cancha', 'factura.comprobantes']) 
                     ->when($search, function ($query, $search) {
                         $query->where('id', 'like', "%{$search}%")
                             ->orWhereHas('user', function ($q) use ($search) {
@@ -38,10 +39,9 @@ class ReservaController extends Controller
                     })
                     ->orderBy('fecha', 'desc') 
                     ->orderBy('hora_inicio', 'desc')
-                    ->paginate(10)
+                    ->paginate(10) // Mantenemos paginate, NO uses get()
                     ->withQueryString();
 
-                // CAMBIO AQUÍ: 'Reservas/MisReservas' en lugar de 'Reservas/Index'
                 return Inertia::render('Reservas/MisReservas', [ 
                     'reservas' => $reservas,
                     'filters' => $request->only(['search']),
@@ -51,8 +51,7 @@ class ReservaController extends Controller
 
             } else {
                 // --- LÓGICA PARA CLIENTE ---
-                
-                $reservas = Reserva::with(['cancha', 'factura'])
+                    $reservas = Reserva::with(['cancha', 'factura.comprobantes'])
                     ->where('user_id', $user->id)
                     ->orderBy('fecha', 'desc')
                     ->orderBy('hora_inicio', 'desc')

@@ -11,6 +11,8 @@ use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
+use App\Models\Comprobante; 
+use Illuminate\Support\Facades\Storage;
 
 class FacturaController extends Controller
 {
@@ -27,7 +29,7 @@ class FacturaController extends Controller
         // 3. Definir métodos de pago según el ROL
         $metodosPago = [];
         
-        // Todos pueden usar transferencia o tarjeta (ejemplo)
+        // Todos pueden usar transferencia o tarjeta 
         $metodosPago[] = ['id' => 'transferencia', 'nombre' => 'Transferencia Bancaria'];
         $metodosPago[] = ['id' => 'tarjeta', 'nombre' => 'Tarjeta de Crédito/Débito'];
 
@@ -43,18 +45,22 @@ class FacturaController extends Controller
         ]);
     }
 
-public function procesar(Request $request, Reserva $reserva)
+    public function procesar(Request $request, Reserva $reserva)
     {
         // 1. Calcular saldo
         $saldoPendiente = $reserva->precio_alquiler_total - $reserva->monto_comprobante;
 
-        // 2. VALIDACIÓN SEGURA (Sin concatenar strings para evitar errores de comas/puntos)
+        // 2. VALIDACIÓN SEGURA
         $request->validate([
             'metodo' => 'required',
-            'monto'  => 'required|numeric|min:0.01|lte:' . $saldoPendiente // Usamos lte (less than or equal)
+            // Agregamos la validación del archivo: opcional (nullable), debe ser imagen, máx 5MB
+            'comprobante' => 'nullable|image|max:5120', 
+            'monto'  => 'required|numeric|min:0.01|lte:' . $saldoPendiente
         ], [
             'monto.lte' => 'El monto supera la deuda pendiente ($' . number_format($saldoPendiente, 2) . ').',
-            'monto.min' => 'El monto debe ser mayor a 0.'
+            'monto.min' => 'El monto debe ser mayor a 0.',
+            'comprobante.image' => 'El archivo debe ser una imagen (jpg, png, etc).',
+            'comprobante.max' => 'La imagen no debe pesar más de 5MB.'
         ]);
 
         $montoAbonado = $request->monto;
@@ -63,9 +69,7 @@ public function procesar(Request $request, Reserva $reserva)
         $nuevoMonto = $reserva->monto_comprobante + $montoAbonado;
         $mitad = $reserva->precio_alquiler_total / 2;
 
-        // Usamos bccomp para comparar flotantes con precisión segura (opcional pero recomendado)
-        // O simplemente tu lógica anterior:
-        if ($reserva->estado === 'pendiente' && $nuevoMonto < ($mitad - 0.01)) { // Margen de 1 centavo
+        if ($reserva->estado === 'pendiente' && $nuevoMonto < ($mitad - 0.01)) { 
             return back()->withErrors([
                 'monto' => 'El abono inicial debe cubrir el 50% ($' . number_format($mitad, 2) . ').'
             ]);
@@ -74,11 +78,31 @@ public function procesar(Request $request, Reserva $reserva)
         // 3. ACTUALIZAR RESERVA
         $datosActualizar = ['monto_comprobante' => $nuevoMonto];
 
-        if ($reserva->estado === 'pendiente' && $nuevoMonto >= ($mitad - 0.01)) {
+        if ($nuevoMonto >= ($reserva->precio_alquiler_total - 0.01)) {
             $datosActualizar['estado'] = 'confirmada';
+        } else {
+            // Opcional: Aseguramos que siga pendiente si no ha llegado al total
+            $datosActualizar['estado'] = 'pendiente';
         }
 
         $reserva->update($datosActualizar);
+
+        if ($request->hasFile('comprobante')) {
+            $archivo = $request->file('comprobante');
+            
+            // Guardamos en la carpeta 'public/comprobantes'
+            $ruta = $archivo->store('comprobantes', 'public');
+
+            // Creamos el registro en la base de datos
+            // Usamos la relación $reserva->factura para obtener el ID correcto
+            Comprobante::create([
+                'factura_id' => $reserva->factura->id,
+                'ruta_archivo' => $ruta,
+                'nombre_original' => $archivo->getClientOriginalName(),
+                'tipo_mime' => $archivo->getMimeType(),
+            ]);
+        }
+        // ----------------------------------------------
 
         // 4. ACTUALIZAR FACTURA
         $estaPagada = ($reserva->precio_alquiler_total - $nuevoMonto) <= 0.01;
@@ -91,7 +115,7 @@ public function procesar(Request $request, Reserva $reserva)
         return redirect()->route('reservas.mis-reservas')->with('success', 'Pago registrado correctamente.');
     }
 
-public function descargarPDF($reserva_id)
+    public function descargarPDF($reserva_id)
     {
         // 1. Buscar datos
         $reserva = Reserva::with(['factura', 'cancha', 'user'])->findOrFail($reserva_id);
@@ -108,7 +132,7 @@ public function descargarPDF($reserva_id)
 
         $factura = $reserva->factura;
 
-        // --- 4. GENERACIÓN DEL QR (CORREGIDO PARA DOMPDF) ---
+        // --- 4. GENERACIÓN DEL QR ---
         try {
             // Datos JSON
             $dataQR = json_encode([
@@ -123,14 +147,13 @@ public function descargarPDF($reserva_id)
             );
             $writer = new Writer($renderer);
             
-            // CAMBIO CLAVE: Generamos el string y lo convertimos a BASE64
+            // Generamos el string y lo convertimos a BASE64
             $qrString = $writer->writeString($dataQR);
             $qrCode = base64_encode($qrString);
 
         } catch (\Exception $e) {
             $qrCode = null;
         }
-        // ----------------------------------------------------
 
         // 5. Generar PDF
         $pdf = Pdf::loadView('pdf.factura', compact('reserva', 'factura', 'qrCode'));
