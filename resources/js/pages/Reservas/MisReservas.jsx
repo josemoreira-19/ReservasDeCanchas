@@ -3,10 +3,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import dayjs from 'dayjs';
 
-// =================================================================
-// 1. COMPONENTES AUXILIARES (SE DEFINEN AFUERA, SIN ESTADOS PROPIOS)
-// =================================================================
-
+// =============================
+// 1. COMPONENTES AUXILIARES 
+// =============================
 const EstadoBadge = ({ estado }) => {
     const estadoNorm = estado ? estado.toLowerCase() : 'pendiente';
     const colores = {
@@ -30,7 +29,7 @@ const ModalComprobantes = ({ isOpen, onClose, comprobantes }) => {
             <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 relative animate-fade-in-down max-h-[90vh] overflow-y-auto">
                 
                 <div className="flex justify-between items-center mb-4 border-b pb-2">
-                    <h3 className="text-lg font-bold text-gray-800">📸 Comprobantes de Pago</h3>
+                    <h3 className="text-lg font-bold text-gray-800"> Comprobantes de Pago</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-red-500 text-xl font-bold">✕</button>
                 </div>
 

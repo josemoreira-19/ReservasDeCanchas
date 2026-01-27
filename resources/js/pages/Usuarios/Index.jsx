@@ -34,21 +34,30 @@ export default function Index({ auth, users, filters }) {
     };
 
     // ABRIR MODAL
-    const abrirModal = (usuario = null) => {
+const abrirModal = (usuario = null) => {
         clearErrors();
         if (usuario) {
+            // --- MODO EDITAR ---
             setUsuarioEditar(usuario);
             setData({
                 name: usuario.name,
                 cedula: usuario.cedula || '',
                 email: usuario.email,
-                password: '', // Password vacío al editar
+                password: '', 
                 role: usuario.role,
             });
         } else {
+            // --- MODO CREAR (AQUÍ ESTÁ LA SOLUCIÓN) ---
             setUsuarioEditar(null);
-            reset(); // Limpia campos para crear
-            setData('role', 'client');
+            
+            // Forzamos la limpieza manual de todos los campos
+            setData({
+                name: '',
+                cedula: '',
+                email: '',
+                password: '',
+                role: 'client',
+            });
         }
         setModalAbierto(true);
     };
@@ -170,6 +179,7 @@ export default function Index({ auth, users, filters }) {
                                 onChange={e => setData('name', e.target.value)} 
                                 className="w-full mt-1" 
                                 required 
+                                maxLength={70}
                             />
                             <InputError message={errors.name} />
                         </div>
@@ -195,7 +205,8 @@ export default function Index({ auth, users, filters }) {
                                 value={data.email} 
                                 onChange={e => setData('email', e.target.value)} 
                                 className="w-full mt-1" 
-                                required 
+                                required
+                                maxLength={100}
                             />
                             <InputError message={errors.email} />
                         </div>

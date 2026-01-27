@@ -35,7 +35,7 @@ const CanchaHeader = ({ cancha, estaDisponible }) => {
 
     if (mostrarFotos && tieneImagenes) {
         return (
-            <div className="h-40 w-full relative bg-gray-100 group">
+            <div className="h-40 w-full relative bg-gray-100 group">    
                 <img 
                     src={`/storage/${cancha.images[indiceFoto].ruta}`} 
                     alt={cancha.nombre}
@@ -346,7 +346,14 @@ export default function Index({ auth, canchas, isAdmin }) {
                     <form onSubmit={submitAdmin} className="space-y-4">
                         <div>
                             <InputLabel value="Nombre" />
-                            <TextInput value={data.nombre} onChange={e => setData('nombre', e.target.value)} className="w-full mt-1" required />
+                            <TextInput 
+                            value={data.nombre} 
+                            onChange={e => setData('nombre', e.target.value)} 
+                            className="w-full mt-1" 
+                            required 
+                            maxlength={70} />
+
+
                             <InputError message={errors.nombre} />
                         </div>
                         <div>

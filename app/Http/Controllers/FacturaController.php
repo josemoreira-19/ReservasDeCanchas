@@ -18,15 +18,15 @@ class FacturaController extends Controller
 {
     public function pago($reserva_id)
     {
-        // 1. Buscamos la reserva y cargamos su factura y la cancha
+        //Buscamos la reserva y cargamos su factura y la cancha
         $reserva = Reserva::with(['factura', 'cancha', 'user'])->findOrFail($reserva_id);
 
-        // 2. Seguridad: Solo el dueño o el admin pueden ver esto
+        //Seguridad: Solo el dueño o el admin pueden ver esto
         if (auth()->id() !== $reserva->user_id && auth()->user()->role !== 'admin') {
             abort(403, 'No tienes permiso para ver esta factura.');
         }
 
-        // 3. Definir métodos de pago según el ROL
+        //Definir métodos de pago según el ROL
         $metodosPago = [];
         
         // Todos pueden usar transferencia o tarjeta 
@@ -47,13 +47,13 @@ class FacturaController extends Controller
 
     public function procesar(Request $request, Reserva $reserva)
     {
-        // 1. Calcular saldo
+        //Calcular saldo
         $saldoPendiente = $reserva->precio_alquiler_total - $reserva->monto_comprobante;
 
-        // 2. VALIDACIÓN SEGURA
+        //VALIDACIÓN SEGURA
         $request->validate([
             'metodo' => 'required',
-            // Agregamos la validación del archivo: opcional (nullable), debe ser imagen, máx 5MB
+            //la validación del archivo
             'comprobante' => 'nullable|image|max:5120', 
             'monto'  => 'required|numeric|min:0.01|lte:' . $saldoPendiente
         ], [
@@ -75,13 +75,13 @@ class FacturaController extends Controller
             ]);
         }
 
-        // 3. ACTUALIZAR RESERVA
+        //ACTUALIZAR RESERVA
         $datosActualizar = ['monto_comprobante' => $nuevoMonto];
 
         if ($nuevoMonto >= ($reserva->precio_alquiler_total - 0.01)) {
             $datosActualizar['estado'] = 'confirmada';
         } else {
-            // Opcional: Aseguramos que siga pendiente si no ha llegado al total
+            
             $datosActualizar['estado'] = 'pendiente';
         }
 
@@ -90,11 +90,10 @@ class FacturaController extends Controller
         if ($request->hasFile('comprobante')) {
             $archivo = $request->file('comprobante');
             
-            // Guardamos en la carpeta 'public/comprobantes'
+            // Guardamos en la carpeta 
             $ruta = $archivo->store('comprobantes', 'public');
 
             // Creamos el registro en la base de datos
-            // Usamos la relación $reserva->factura para obtener el ID correcto
             Comprobante::create([
                 'factura_id' => $reserva->factura->id,
                 'ruta_archivo' => $ruta,
@@ -104,7 +103,7 @@ class FacturaController extends Controller
         }
         // ----------------------------------------------
 
-        // 4. ACTUALIZAR FACTURA
+        //ACTUALIZAR FACTURA
         $estaPagada = ($reserva->precio_alquiler_total - $nuevoMonto) <= 0.01;
         
         $reserva->factura->update([

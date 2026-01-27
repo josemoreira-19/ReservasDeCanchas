@@ -2,98 +2,196 @@
 @tailwind components;
 @tailwind utilities;
 
-/* =========================================
-   ⚡ EFECTO ZAP "REAL" (Amarillo & Celeste) ⚡
-========================================= */
+/* ===============================
+⚡ ELECTRIC FX GLOBAL
+=============================== */
 
-/* 1. El temblor violento (SE MANTIENE IGUAL) */
 @keyframes super-zap-shake {
-    0%, 100% { transform: translate(0, 0) rotate(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translate(-3px, 2px) rotate(-2deg); }
-    20%, 40%, 60%, 80% { transform: translate(3px, -2px) rotate(2deg); }
+    0%,100% {transform:translate(0,0)}
+    10%,30%,50%,70%,90% {transform:translate(-3px,2px) rotate(-2deg)}
+    20%,40%,60%,80% {transform:translate(3px,-2px) rotate(2deg)}
 }
 
-/* 2. El Flash ahora es Blanco -> Amarillo -> Celeste */
 @keyframes lightning-flash-burst {
-    0% { opacity: 0; }
-    10% { opacity: 1; background: white; }        /* Destello cegador */
-    25% { opacity: 0.8; background: #fef08a; }    /* Amarillo claro */
-    50% { opacity: 0.4; background: #67e8f9; }    /* Celeste neón */
-    100% { opacity: 0; }
+    0% {opacity:0}
+    10% {opacity:1;background:white}
+    25% {opacity:.8;background:#fef08a}
+    50% {opacity:.4;background:#67e8f9}
+    100% {opacity:0}
 }
 
-@keyframes spin-sparks {
-    to { transform: rotate(360deg); }
+@keyframes electric-flicker {
+    0%,100% {opacity:.3}    
+    10% {opacity:1}
+    20% {opacity:.2}
+    35% {opacity:.8}
+    50% {opacity:.4}
+    65% {opacity:1}
+    80% {opacity:.3}
+}
+
+@keyframes particle-burst {
+    0% {transform:scale(0);opacity:1}
+    100% {transform:scale(2);opacity:0}
+}
+
+@keyframes arc-move {
+    0% {background-position:0 0}
+    100% {background-position:400% 0}
 }
 
 @layer components {
-    .btn-electric {
-        @apply relative overflow-visible transition-all duration-100 z-10 inline-flex items-center justify-center border-2 border-transparent;
-    }
 
-    .btn-electric:hover {
-        /* Temblor */
-        animation: super-zap-shake 0.4s linear infinite;
-        
-        /* FONDO: Azul muy oscuro para que resalten los rayos */
-        background-color: #0f172a !important; 
-        color: #fef08a !important; /* Texto amarillo pálido */
-        
-        /* BORDE: Amarillo Eléctrico */
-        border-color: #facc15; 
-        
-        transform: scale(1.05);
-        
-        /* AURA ELÉCTRICA (Mezcla Celeste y Amarillo) */
-        box-shadow: 
-            0 0 10px #fef08a,       /* Centro amarillo */
-            0 0 20px #facc15,       /* Halo amarillo fuerte */
-            0 0 40px #22d3ee,       /* Halo celeste neón */
-            0 0 80px #0ea5e9;       /* Resplandor azul lejano */
-    }
+.btn-electric {
+    @apply relative overflow-visible transition-all duration-100 z-10 inline-flex items-center justify-center border-2 border-transparent;
+}
 
-    /* El Flash de luz */
-    .btn-electric::before {
-        content: '';
-        @apply absolute inset-[-4px] bg-transparent opacity-0 z-20 pointer-events-none rounded-[inherit];
-    }
-
-    .btn-electric:hover::before {
-        animation: lightning-flash-burst 0.5s ease-out forwards;
-    }
-
-    /* Las Chispas Giratorias (Ahora Amarillas) */
-    .btn-electric::after {
-        content: '';
-        /* Borde punteado amarillo */
-        @apply absolute inset-[-6px] border-2 border-dashed border-yellow-400 opacity-0 -z-10 rounded-[inherit] transition-opacity duration-100;
-    }
-    
 .btn-electric:hover {
-        /* Temblor */
-        animation: super-zap-shake 0.4s linear infinite;
-        
-        /* --- CAMBIO PRINCIPAL AQUÍ --- */
-        
-        /* 1. EL FONDO: Ahora es un degradado radial (Luz Cyan en el centro, Azul oscuro afuera) */
-        /* Esto elimina el efecto "negro" y pone luz detrás de la mascota */
-        background: radial-gradient(circle at center, #22d3ee 0%, #1e1b4b 80%) !important;
-        
-        /* Color del texto (para los botones normales) */
-        color: #fef08a !important; 
-        
-        /* Borde amarillo eléctrico */
-        border-color: #facc15; 
-        
-        transform: scale(1.05);
-        
-        /* 2. LAS SOMBRAS (AURA) */
-        box-shadow: 
-            /* Sombra INTERNA (Inset): Mete luz amarilla DENTRO del botón */
-            inset 0 0 20px rgba(250, 204, 21, 0.6), 
-            
-            /* Sombras EXTERNAS (Aura): Celeste y Azul */
-            0 0 15px rgba(254, 240, 138, 0.8), /* Brillo amarillo cercano */
-            0 0 30px rgba(34, 211, 238, 0.8),  /* Halo Celeste neón */
-            0 0 60px rgba(59, 130, 246, 0.6);  /* Resplandor azul lejano */
-    }}
+    animation:super-zap-shake .4s linear infinite;
+    background:radial-gradient(circle,#22d3ee 0%,#1e1b4b 80%) !important;
+    color:#fef08a!important;
+    border-color:#facc15;
+    transform:scale(1.05);
+    box-shadow:
+        inset 0 0 20px rgba(250,204,21,.6),
+        0 0 15px rgba(254,240,138,.8),
+        0 0 30px rgba(34,211,238,.8),
+        0 0 60px rgba(59,130,246,.6);
+}
+
+.btn-electric::before {
+    content:'';
+    position:absolute;
+    inset:-4px;
+    border-radius:inherit;
+    opacity:0;
+}
+
+.btn-electric:hover::before {
+    animation:lightning-flash-burst .5s ease-out forwards;
+}
+
+/* ⚡ RAYOS */
+
+.btn-electric::after {
+    content:"";
+    position:absolute;
+    inset:-25px;
+    pointer-events:none;
+    background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'><polyline points='0,30 40,10 80,50 120,20 160,40 200,30' fill='none' stroke='%2322d3ee' stroke-width='2'/></svg>");
+    background-size:200% 100%;
+    mix-blend-mode:screen;
+    opacity:0;
+}
+
+.btn-electric:hover::after {
+    opacity:1;
+    animation:arc-move .2s linear infinite,electric-flicker .25s infinite;
+}
+
+/* ⚡ PARTICULAS */
+
+.btn-electric span.spark {
+    position:absolute;
+    width:6px;
+    height:6px;
+    background:#facc15;
+    border-radius:50%;
+    filter:blur(1px);
+    animation:particle-burst .5s linear forwards;
+}
+.electric-img {
+    position:relative;
+    display:inline-block;
+}
+
+.electric-img:hover {
+    animation:super-zap-shake .3s linear infinite;
+    filter:
+        drop-shadow(0 0 10px #22d3ee)
+        drop-shadow(0 0 25px #67e8f9)
+        drop-shadow(0 0 50px #facc15);
+}
+
+/* rayos externos */
+
+.electric-img::after {
+    content:"";
+    position:absolute;
+    inset:-30px;
+    pointer-events:none;
+    background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'><polyline points='0,30 40,10 80,50 120,20 160,40 200,30' fill='none' stroke='%2322d3ee' stroke-width='2'/></svg>");
+    background-size:200% 100%;
+    opacity:0;
+    mix-blend-mode:screen;
+}
+
+.electric-img:hover::after {
+    opacity:1;
+    animation:arc-move .2s linear infinite,electric-flicker .25s infinite;
+}
+
+
+
+.electric-avatar {
+    position: relative;
+    display: inline-block;
+}
+
+.electric-avatar img {
+    position: relative;
+    z-index: 2;
+}
+
+/* Aura principal */
+.electric-avatar::before {
+    content: "";
+    position: absolute;
+    inset: -35px;
+    opacity: 0;
+    pointer-events: none;
+
+    background:
+        radial-gradient(circle, #22d3ee 0%, transparent 65%),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><polygon points='100,0 120,40 180,50 140,90 160,160 100,130 40,160 60,90 20,50 80,40' fill='none' stroke='%23facc15' stroke-width='3'/></svg>");
+
+    background-size: cover;
+    filter: blur(6px);
+    mix-blend-mode: screen;
+}
+
+/* Rayos */
+.electric-avatar::after {
+    content: "";
+    position: absolute;
+    inset: -45px;
+    opacity: 0;
+
+    background:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60'><polyline points='0,30 40,10 80,50 120,20 160,40 200,30' fill='none' stroke='%2322d3ee' stroke-width='2'/></svg>");
+
+    background-size: 200% 100%;
+}
+
+/* Hover */
+
+.electric-avatar:hover::before {
+    opacity: 1;
+    animation: aura-flicker .3s infinite;
+}
+
+.electric-avatar:hover::after {
+    opacity: 1;
+    animation: arc-move .2s linear infinite;
+}
+
+@keyframes aura-flicker {
+    0%,100% {opacity:.4}
+    50% {opacity:1}
+}
+
+@keyframes arc-move {
+    to {background-position:200% 0}
+}
+
+}

@@ -6,11 +6,10 @@ export default function BuscadorCliente({ onSeleccionar }) {
     const [resultados, setResultados] = useState([]);
     const [buscando, setBuscando] = useState(false);
     
-    // NUEVO ESTADO: Para saber si el texto actual es una selección final
     const [seleccionado, setSeleccionado] = useState(false);
 
     useEffect(() => {
-        // Si ya seleccionamos a alguien, no buscamos más
+        
         if (seleccionado) return;
 
         const timeoutId = setTimeout(() => {
@@ -21,7 +20,7 @@ export default function BuscadorCliente({ onSeleccionar }) {
             }
         }, 300);
         return () => clearTimeout(timeoutId);
-    }, [query, seleccionado]); // Agregamos seleccionado a las dependencias
+    }, [query, seleccionado]); 
 
     const buscarClientes = async () => {
         setBuscando(true);
@@ -37,8 +36,8 @@ export default function BuscadorCliente({ onSeleccionar }) {
 
     const handleInputChange = (e) => {
         setQuery(e.target.value);
-        setSeleccionado(false); // Si escribe algo nuevo, rompemos la selección
-        // Si borra el texto, avisamos al padre que ya no hay cliente
+        setSeleccionado(false); 
+
         if (e.target.value === '') {
             onSeleccionar({ id: '' });
         }
@@ -68,7 +67,7 @@ export default function BuscadorCliente({ onSeleccionar }) {
                                 onSeleccionar(user);
                                 setQuery(`${user.name} - ${user.cedula}`);
                                 setResultados([]);
-                                setSeleccionado(true); // <--- Marcamos como seleccionado
+                                setSeleccionado(true); 
                             }}
                             className="px-4 py-2 hover:bg-indigo-50 cursor-pointer text-sm border-b last:border-b-0"
                         >

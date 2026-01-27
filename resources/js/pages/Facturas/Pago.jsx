@@ -15,10 +15,10 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
     const [montoPagar, setMontoPagar] = useState(restante); 
     const [codigoTransaccion, setCodigoTransaccion] = useState('');
     
-    // --- NUEVO ESTADO PARA LA IMAGEN ---
+    
     const [imagenComprobante, setImagenComprobante] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
-    // -----------------------------------
+    
 
     const [procesando, setProcesando] = useState(false);
     const [pagoCompletado, setPagoCompletado] = useState(false);
@@ -38,7 +38,7 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
                 return;
             }
             setImagenComprobante(file);
-            setPreviewUrl(URL.createObjectURL(file)); // Crear preview local
+            setPreviewUrl(URL.createObjectURL(file)); 
             setErrorLocal(null);
         }
     };
@@ -60,7 +60,7 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
         }
 
         if (metodoSeleccionado !== 'efectivo') {
-            // Validar que suban foto si no es efectivo (Opcional, según lo que pida el docente)
+            // Validar que suban foto si no es efectivo 
             if (!imagenComprobante) {
                 setErrorLocal('Debes subir una foto del comprobante.');
                 return;
@@ -70,7 +70,6 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
         setProcesando(true);
         enviandoPagoRef.current = true;
 
-        // Inertia maneja automáticamente el FormData si detecta un archivo
         router.post(route('facturas.procesar', reserva.id), {
             metodo: metodoSeleccionado,
             monto: monto,
@@ -89,8 +88,7 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
         });
     };
 
-    // ... (Mantener funciones cancelarAhora, salirSinPagar y useEffect del Guardián igual que antes) ...
-    // Solo pego las funciones para que el código compile si lo copias directo
+
     const cancelarAhora = () => {
         if (confirm("¿Estás seguro de cancelar?")) {
             setProcesando(true);
@@ -123,7 +121,7 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
                 <div className="max-w-5xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-xl sm:rounded-lg grid grid-cols-1 md:grid-cols-2">
                         
-                        {/* COLUMNA IZQUIERDA (Igual que tu código) */}
+                        {/* COLUMNA IZQUIERDA */}
                         <div className="p-8 bg-gray-50 border-r border-gray-200 flex flex-col justify-between">
                             <div>
                                 <h2 className="text-xl font-bold text-gray-800 mb-6">Detalle de Reserva</h2>
@@ -301,7 +299,7 @@ export default function Pago({ auth, reserva, factura, metodosDisponibles }) {
                                         {procesando ? 'Procesando...' : `Confirmar Pago`}
                                     </button>
                                     
-                                    {/* ... Resto de botones (Salir, Cancelar) igual que antes ... */}
+                                    {/* Resto de botones */}
                                     {(auth.user.role === 'admin' || restante <= 0) && !procesando && (
                                         <button type="button" onClick={salirSinPagar} className="w-full py-3 px-4 border border-gray-300 rounded-lg text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 transition">
                                             {restante <= 0 ? 'Volver al Inicio' : 'Salir sin cobrar ahora'}

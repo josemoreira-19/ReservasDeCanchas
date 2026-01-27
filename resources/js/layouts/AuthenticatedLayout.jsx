@@ -4,10 +4,12 @@ import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import useElectricEffect from '@/hooks/useElectricEffect';
+
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
-
+    useElectricEffect();
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
 
@@ -17,7 +19,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
                         <div className="flex">
-                            <div className="flex shrink-0 items-center">
+                            <div className="flex shrink-0 items-center electric-avatar">
                                 {/* Usamos <a> para evitar errores de modal si la ruta '/' es vista Blade */}
                                 <a href="/">
                                     <img 
